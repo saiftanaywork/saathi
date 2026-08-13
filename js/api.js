@@ -2,13 +2,13 @@ import { supabase } from "./supabaseClient.js";
 
 const CAREGIVER_COLUMNS = `
   id, headline, bio, city, languages, care_types, rate, experience_years,
-  availability, initials, accent, created_at,
+  availability, initials, accent, photo_url, created_at,
   profiles!caregiver_profiles_id_fkey ( full_name )
 `;
 
-// background_checks has no direct FK to caregiver_profiles (only to
-// profiles), so PostgREST can't auto-embed it there -- fetch separately and
-// merge the latest status per caregiver client-side.
+// background_checks and reviews have no direct FK to caregiver_profiles
+// (only to profiles), so PostgREST can't auto-embed them there -- fetch
+// separately and merge client-side.
 async function latestBackgroundStatuses(ids) {
   if (!ids.length) return new Map();
   const { data, error } = await supabase
@@ -24,7 +24,23 @@ async function latestBackgroundStatuses(ids) {
   return map;
 }
 
-function normalizeCaregiver(row, backgroundStatus) {
+async function ratingSummaries(ids) {
+  if (!ids.length) return new Map();
+  const { data, error } = await supabase.from("reviews").select("caregiver_id, rating").in("caregiver_id", ids);
+  if (error) throw error;
+  const map = new Map();
+  for (const row of data || []) {
+    const entry = map.get(row.caregiver_id) || { sum: 0, count: 0 };
+    entry.sum += row.rating;
+    entry.count += 1;
+    map.set(row.caregiver_id, entry);
+  }
+  const result = new Map();
+  for (const [id, { sum, count }] of map) result.set(id, { avg: sum / count, count });
+  return result;
+}
+
+function normalizeCaregiver(row, backgroundStatus, rating) {
   return {
     id: row.id,
     name: row.profiles?.full_name || "",
@@ -38,7 +54,10 @@ function normalizeCaregiver(row, backgroundStatus) {
     availability: row.availability,
     initials: row.initials,
     accent: row.accent,
+    photoUrl: row.photo_url || null,
     backgroundStatus: backgroundStatus || "none",
+    ratingAvg: rating?.avg || 0,
+    ratingCount: rating?.count || 0,
   };
 }
 
@@ -49,8 +68,9 @@ export async function fetchCaregivers() {
     .order("created_at", { ascending: false });
   if (error) throw error;
   const rows = data || [];
-  const statuses = await latestBackgroundStatuses(rows.map((r) => r.id));
-  return rows.map((row) => normalizeCaregiver(row, statuses.get(row.id)));
+  const ids = rows.map((r) => r.id);
+  const [statuses, ratings] = await Promise.all([latestBackgroundStatuses(ids), ratingSummaries(ids)]);
+  return rows.map((row) => normalizeCaregiver(row, statuses.get(row.id), ratings.get(row.id)));
 }
 
 export async function fetchCaregiverById(id) {
@@ -61,8 +81,8 @@ export async function fetchCaregiverById(id) {
     .maybeSingle();
   if (error) throw error;
   if (!data) return null;
-  const statuses = await latestBackgroundStatuses([id]);
-  return normalizeCaregiver(data, statuses.get(id));
+  const [statuses, ratings] = await Promise.all([latestBackgroundStatuses([id]), ratingSummaries([id])]);
+  return normalizeCaregiver(data, statuses.get(id), ratings.get(id));
 }
 
 export async function fetchMyCaregiverProfile(id) {
@@ -183,4 +203,115 @@ export async function toggleFavorite(familyId, caregiverId, shouldFavorite) {
     const { error } = await supabase.from("favorites").delete().eq("family_id", familyId).eq("caregiver_id", caregiverId);
     if (error) throw error;
   }
+}
+
+// ---------------------------------------------------------------------
+// Reviews / testimonials
+// ---------------------------------------------------------------------
+
+export async function fetchReviews(caregiverId) {
+  const { data, error } = await supabase
+    .from("reviews")
+    .select("id, rating, comment, created_at, family_id, profiles!reviews_family_id_fkey ( full_name )")
+    .eq("caregiver_id", caregiverId)
+    .order("created_at", { ascending: false });
+  if (error) throw error;
+  return (data || []).map((r) => ({
+    id: r.id,
+    rating: r.rating,
+    comment: r.comment,
+    createdAt: r.created_at,
+    familyId: r.family_id,
+    familyName: r.profiles?.full_name || "A Saathi family",
+  }));
+}
+
+export async function fetchRecentReviews(limit = 3) {
+  const { data, error } = await supabase
+    .from("reviews")
+    .select("id, rating, comment, created_at, family_id, caregiver_id, profiles!reviews_family_id_fkey ( full_name )")
+    .gte("rating", 4)
+    .order("created_at", { ascending: false })
+    .limit(limit);
+  if (error) throw error;
+  return (data || []).map((r) => ({
+    id: r.id,
+    rating: r.rating,
+    comment: r.comment,
+    createdAt: r.created_at,
+    familyName: r.profiles?.full_name || "A Saathi family",
+    caregiverId: r.caregiver_id,
+  }));
+}
+
+export async function fetchMyReview(caregiverId, familyId) {
+  const { data, error } = await supabase
+    .from("reviews")
+    .select("id, rating, comment")
+    .eq("caregiver_id", caregiverId)
+    .eq("family_id", familyId)
+    .maybeSingle();
+  if (error) throw error;
+  return data;
+}
+
+export async function submitReview({ caregiverId, familyId, rating, comment }) {
+  const { error } = await supabase
+    .from("reviews")
+    .upsert({ caregiver_id: caregiverId, family_id: familyId, rating, comment, updated_at: new Date().toISOString() }, { onConflict: "family_id,caregiver_id" });
+  if (error) throw error;
+}
+
+// ---------------------------------------------------------------------
+// Photo upload (Supabase Storage: public "avatars" bucket)
+// ---------------------------------------------------------------------
+
+export async function uploadAvatar(userId, file) {
+  const ext = (file.name.split(".").pop() || "jpg").toLowerCase();
+  const path = `${userId}/avatar.${ext}`;
+  const { error: uploadError } = await supabase.storage.from("avatars").upload(path, file, { upsert: true, contentType: file.type });
+  if (uploadError) throw uploadError;
+  const { data } = supabase.storage.from("avatars").getPublicUrl(path);
+  const url = `${data.publicUrl}?v=${Date.now()}`;
+  await upsertCaregiverProfile(userId, { photo_url: url });
+  return url;
+}
+
+// ---------------------------------------------------------------------
+// Verification documents (Supabase Storage: private "verification-docs")
+// ---------------------------------------------------------------------
+
+export async function uploadVerificationDocument(userId, file) {
+  const safeName = file.name.replace(/[^a-zA-Z0-9._-]/g, "_");
+  const path = `${userId}/${Date.now()}_${safeName}`;
+  const { error: uploadError } = await supabase.storage.from("verification-docs").upload(path, file, { contentType: file.type });
+  if (uploadError) throw uploadError;
+  const { error } = await supabase.from("verification_documents").insert({ caregiver_id: userId, file_path: path, file_name: file.name });
+  if (error) throw error;
+}
+
+export async function listMyDocuments(userId) {
+  const { data, error } = await supabase
+    .from("verification_documents")
+    .select("id, file_path, file_name, uploaded_at")
+    .eq("caregiver_id", userId)
+    .order("uploaded_at", { ascending: false });
+  if (error) throw error;
+  return data || [];
+}
+
+export async function listDocumentsForCaregiver(caregiverId) {
+  const { data, error } = await supabase
+    .from("verification_documents")
+    .select("id, file_path, file_name, uploaded_at")
+    .eq("caregiver_id", caregiverId)
+    .order("uploaded_at", { ascending: false });
+  if (error) throw error;
+  return data || [];
+}
+
+export async function getDocumentSignedUrl(filePath) {
+  const { data, error } = await supabase.storage.from("verification-docs").createSignedUrl(filePath, 60 * 10);
+  if (error) throw error;
+  return data.signedUrl;
 }

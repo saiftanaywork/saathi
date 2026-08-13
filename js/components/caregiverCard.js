@@ -1,4 +1,12 @@
 import { escapeHtml, CARE_TYPES, shieldIcon, starIcon } from "../constants.js";
+import { RatingSummary } from "./starRating.js";
+
+export function avatarMarkup(cg, size = "md") {
+  if (cg.photoUrl) {
+    return `<img class="avatar avatar-${size} avatar-photo" src="${escapeHtml(cg.photoUrl)}" alt="${escapeHtml(cg.name)}">`;
+  }
+  return `<div class="avatar avatar-${size} avatar-${cg.accent}">${escapeHtml(cg.initials)}</div>`;
+}
 
 function tags(cg) {
   const langs = cg.languages.slice(0, 3).map((l) => `<span class="tag tag-lang">${escapeHtml(l)}</span>`).join("");
@@ -25,7 +33,7 @@ export function CaregiverCard(cg, { mode = "grid", isFav = false, showFav = true
   return `
   <div class="cg-card" data-caregiver-card="${cg.id}">
     <a class="cg-card-top" href="#/caregiver/${cg.id}" style="text-decoration:none;color:inherit;flex:1;min-width:0;">
-      <div class="avatar avatar-md avatar-${cg.accent}">${escapeHtml(cg.initials)}</div>
+      ${avatarMarkup(cg, "md")}
       <div style="min-width:0;">
         <div class="cg-name">${escapeHtml(cg.name)}</div>
         <div class="cg-city">${escapeHtml(cg.city)}</div>
@@ -35,6 +43,7 @@ export function CaregiverCard(cg, { mode = "grid", isFav = false, showFav = true
       ${matchChip(cg)}
       <p class="cg-headline">${escapeHtml(cg.headline)}</p>
       ${tags(cg)}
+      <div style="margin-top:6px;">${RatingSummary(cg.ratingAvg, cg.ratingCount)}</div>
       ${verifiedBadge(cg)}
     </div>
     <div class="cg-card-foot">

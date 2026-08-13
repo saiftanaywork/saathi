@@ -1,4 +1,5 @@
-import { LANGUAGES, LANGUAGE_SCRIPT, heartIcon, leafIcon, sunIcon, shieldIcon } from "../constants.js";
+import { LANGUAGES, LANGUAGE_SCRIPT, escapeHtml, heartIcon, leafIcon, sunIcon, shieldIcon, starIcon } from "../constants.js";
+import { fetchRecentReviews } from "../api.js";
 
 export function LandingPage() {
   return `
@@ -49,6 +50,16 @@ export function LandingPage() {
     </div>
   </section>
 
+  <section class="section section-alt">
+    <div class="container testimonial-rail">
+      <div class="section-head">
+        <h2>What families are saying</h2>
+        <p>Real reviews left after real caregiving relationships.</p>
+      </div>
+      <div id="testimonialArea" class="testimonial-grid"></div>
+    </div>
+  </section>
+
   <section class="section">
     <div class="container">
       <div class="section-head">
@@ -78,4 +89,24 @@ export function LandingPage() {
     </div>
   </section>
   `;
+}
+
+export async function mountLandingPage() {
+  const area = document.getElementById("testimonialArea");
+  if (!area) return;
+  const reviews = await fetchRecentReviews(3).catch(() => []);
+  if (!reviews.length) {
+    area.innerHTML = `<p style="color:var(--ink-faint);">Reviews from families will show up here once caregivers start getting booked.</p>`;
+    return;
+  }
+  area.innerHTML = reviews
+    .map(
+      (r) => `
+    <div class="testimonial-tile">
+      <div style="color:var(--ochre);display:inline-flex;margin-bottom:8px;">${Array.from({ length: 5 }, (_, i) => starIcon(i < r.rating)).join("")}</div>
+      <p class="testimonial-body">"${escapeHtml(r.comment)}"</p>
+      <div class="testimonial-name">${escapeHtml(r.familyName)}</div>
+    </div>`
+    )
+    .join("");
 }

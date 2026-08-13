@@ -88,12 +88,30 @@ export function mountSignupPage() {
     const password = document.getElementById("signupPassword").value;
     const role = roleInput.value;
     try {
-      await signUp({ email, password, fullName, role });
-      navigate(role === "caregiver" ? "/list-your-services" : "/browse");
+      const { session } = await signUp({ email, password, fullName, role });
+      if (!session) {
+        // Email confirmation is required on this project -- there's no
+        // active session yet, so a guarded route would just bounce back
+        // to /login (which would itself fail until they confirm).
+        showConfirmEmailNotice(email);
+        return;
+      }
+      navigate(role === "caregiver" ? "/list-your-services" : "/onboarding");
     } catch (err) {
       showAuthError(err.message || "Couldn't create that account.");
     }
   });
+}
+
+function showConfirmEmailNotice(email) {
+  const card = document.querySelector(".auth-card");
+  if (!card) return;
+  card.innerHTML = `
+    <div class="confirm-panel">
+      <h3>Check your email</h3>
+      <p>We sent a confirmation link to ${escapeHtml(email)}. Click it, then come back and log in.</p>
+      <a class="btn btn-primary" href="#/login" style="margin-top:14px;">Go to login</a>
+    </div>`;
 }
 
 export function AdminLoginPage() {

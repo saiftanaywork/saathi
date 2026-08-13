@@ -1,5 +1,5 @@
 import { escapeHtml } from "../constants.js";
-import { listPendingBackgroundChecks, reviewBackgroundCheck, listAllUsers } from "../api.js";
+import { listPendingBackgroundChecks, reviewBackgroundCheck, listAllUsers, listDocumentsForCaregiver, getDocumentSignedUrl } from "../api.js";
 
 export function AdminPage() {
   return `
@@ -29,7 +29,7 @@ async function renderQueue() {
   }
   el.innerHTML = `
     <table class="admin-table">
-      <thead><tr><th>Caregiver</th><th>Requested</th><th>Status</th><th></th></tr></thead>
+      <thead><tr><th>Caregiver</th><th>Requested</th><th>Documents</th><th></th></tr></thead>
       <tbody>
         ${rows
           .map(
@@ -37,7 +37,7 @@ async function renderQueue() {
           <tr data-row="${r.id}">
             <td>${escapeHtml(r.profiles?.full_name || "Unknown")}</td>
             <td>${new Date(r.requested_at).toLocaleDateString()}</td>
-            <td><span class="status-pill pending">Pending</span></td>
+            <td class="admin-doc-list" id="docs-${r.caregiver_id}">Loading...</td>
             <td>
               <button class="btn btn-primary btn-sm" data-verify="${r.id}">Verify</button>
               <button class="btn btn-ghost btn-sm" data-reject="${r.id}">Reject</button>
@@ -54,6 +54,30 @@ async function renderQueue() {
   el.querySelectorAll("[data-reject]").forEach((btn) =>
     btn.addEventListener("click", () => decide(btn.getAttribute("data-reject"), "rejected"))
   );
+
+  rows.forEach((r) => renderDocsCell(r.caregiver_id));
+}
+
+async function renderDocsCell(caregiverId) {
+  const cell = document.getElementById(`docs-${caregiverId}`);
+  if (!cell) return;
+  const docs = await listDocumentsForCaregiver(caregiverId).catch(() => []);
+  if (!docs.length) {
+    cell.innerHTML = `<span style="color:var(--ink-faint);">None uploaded</span>`;
+    return;
+  }
+  cell.innerHTML = docs.map((d) => `<a href="#" data-doc="${d.file_path}">${escapeHtml(d.file_name)}</a>`).join("");
+  cell.querySelectorAll("[data-doc]").forEach((link) => {
+    link.addEventListener("click", async (e) => {
+      e.preventDefault();
+      try {
+        const url = await getDocumentSignedUrl(link.getAttribute("data-doc"));
+        window.open(url, "_blank", "noopener,noreferrer");
+      } catch {
+        alert("Couldn't open that document.");
+      }
+    });
+  });
 }
 
 async function decide(id, status) {

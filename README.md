@@ -5,10 +5,12 @@ Originally a static-mock [Claude artifact](https://claude.ai/code/artifact/30ff2
 
 ## What's here
 
-- **Directory browsing** with a gallery/list view toggle, language/city/care-type/rate filters, and full-text search.
+- **Directory browsing** with gallery/list/**map** view modes, language/city/care-type/rate filters, and full-text search. The map (Leaflet + OpenStreetMap, no API key) jitters pins around each caregiver's city center since listings only store a city, not an address.
 - **A matching algorithm** (`match_caregivers` Postgres function) that ranks caregivers against a signed-in family's filters *and* their past search history, surfaced as a "Recommended for you" rail on the browse page.
-- **Login/signup** for families and caregivers, plus a separate **admin login** at `/admin/login`.
-- **Background-check status**: a caregiver can request a review from `/list-your-services`; an admin approves/rejects it from `/admin`; approved requests show a Verified badge on the public profile.
+- **Login/signup** for families and caregivers, plus a separate **admin login** at `/admin/login`. New caregivers land in a **care.com-style multi-step wizard** (basics + photo → languages/care types → experience → bio → get verified); new families land in a short 2-step "what are you looking for" quiz that seeds their first search-history row so recommendations aren't empty on day one.
+- **Reviews & testimonials**: signed-in families can leave a 1-5 star rating + comment per caregiver (one per pair, editable); average rating shows on cards and profiles; a few recent 4-5★ reviews surface on the landing page.
+- **Caregiver photos**: uploaded to a public Supabase Storage bucket, shown on cards/profile/map in place of the initials avatar once set.
+- **Background-check status with document verification**: a caregiver can upload supporting documents (ID, certifications — private Storage bucket, owner + admin only) and request a review; an admin reviews the documents and approves/rejects from `/admin`; approved requests show a Verified badge on the public profile.
 - **Saved caregivers** (favorites) for signed-in families.
 
 ## Architecture
@@ -71,6 +73,19 @@ email you want as admin, then run:
 update public.profiles set role = 'admin' where id = (select id from auth.users where email = 'you@example.com');
 ```
 
+**Email confirmation:** new Supabase projects require confirming your email
+before you get a session, so `signUp()` won't drop you straight into the
+onboarding wizard until you click the confirmation link. For frictionless
+local testing, you can turn this off in the Supabase dashboard under
+Authentication → Providers → Email → "Confirm email" — not done here since
+it's a dashboard-only setting, not something scriptable via migrations.
+
+Storage: `avatars` (public, one photo per user at `<user_id>/avatar.<ext>`)
+and `verification-docs` (private, `<user_id>/<timestamp>_<filename>`) are
+created by `0002_reviews_photos_docs.sql`, with RLS on `storage.objects`
+restricting writes to the owning folder and reads to the owner + admins
+(avatars are additionally public-read).
+
 ## Deliberate scope boundaries
 
 - **Background checks are an admin-reviewed status, not a real vendor
@@ -84,10 +99,10 @@ update public.profiles set role = 'admin' where id = (select id from auth.users 
 ## Ideas from care.com not built yet
 
 Noted here rather than built, to keep this pass scoped:
-- Ratings & reviews on caregiver profiles
 - In-app messaging inbox (currently: one-shot contact form)
 - Availability calendar / booking requests
 - Formal application/proposal flow for caregivers responding to a family's posted job
+- Photo galleries beyond a single profile photo
 
 ## Deploying
 

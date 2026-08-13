@@ -3,13 +3,14 @@ import { currentRoute, navigate, initRouter } from "./router.js";
 import { NavBar, attachNavHandlers } from "./components/navbar.js";
 import { Footer } from "./components/footer.js";
 import { ModalLayer } from "./components/modal.js";
-import { LandingPage } from "./pages/landing.js";
-import { BrowsePage, mountBrowsePage } from "./pages/browse.js";
+import { LandingPage, mountLandingPage } from "./pages/landing.js";
+import { BrowsePage, mountBrowsePage, cleanupBrowsePage } from "./pages/browse.js";
 import { ProfilePage, mountProfilePage } from "./pages/profile.js";
 import { LoginPage, mountLoginPage, SignupPage, mountSignupPage, AdminLoginPage, mountAdminLoginPage } from "./pages/auth-pages.js";
 import { ListPage, mountListPage } from "./pages/listYourServices.js";
 import { AdminPage, mountAdminPage } from "./pages/admin.js";
 import { FavoritesPage, mountFavoritesPage } from "./pages/favorites.js";
+import { OnboardingPage, mountOnboardingPage } from "./pages/onboarding.js";
 import { AboutPage, NotFoundPage } from "./pages/about.js";
 
 function routeBody(route) {
@@ -24,12 +25,14 @@ function routeBody(route) {
     case "adminLogin": return AdminLoginPage();
     case "admin": return AdminPage();
     case "favorites": return FavoritesPage();
+    case "onboarding": return OnboardingPage();
     default: return NotFoundPage();
   }
 }
 
 async function mountRoute(route) {
   switch (route.name) {
+    case "landing": return mountLandingPage();
     case "browse": return mountBrowsePage();
     case "profile": return mountProfilePage(route.id);
     case "list": return mountListPage();
@@ -38,6 +41,7 @@ async function mountRoute(route) {
     case "adminLogin": return mountAdminLoginPage();
     case "admin": return mountAdminPage();
     case "favorites": return mountFavoritesPage();
+    case "onboarding": return mountOnboardingPage();
   }
 }
 
@@ -47,6 +51,7 @@ function render() {
     navigate(route.to);
     return;
   }
+  cleanupBrowsePage();
   const root = document.getElementById("app");
   root.innerHTML = NavBar(route.name) + `<main>${routeBody(route)}</main>` + Footer() + `<div id="modalLayer">${ModalLayer()}</div>`;
   attachNavHandlers(() => navigate("/"));

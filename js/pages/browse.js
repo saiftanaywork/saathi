@@ -1,7 +1,9 @@
-import { LANGUAGES, LANGUAGE_SCRIPT, CITIES, CARE_TYPES, escapeAttr, searchIcon, filterIcon, gridIcon, listIcon } from "../constants.js";
-import { CaregiverCard, attachFavoriteHandlers } from "../components/caregiverCard.js";
+import { LANGUAGES, LANGUAGE_SCRIPT, CITIES, CARE_TYPES, escapeAttr, escapeHtml, searchIcon, filterIcon, gridIcon, listIcon, pinIcon, jitteredCoords } from "../constants.js";
+import { CaregiverCard, attachFavoriteHandlers, avatarMarkup } from "../components/caregiverCard.js";
 import { fetchCaregivers, matchCaregivers, logSearch, listFavoriteIds, toggleFavorite } from "../api.js";
 import { isSignedIn, isFamily, getSession } from "../auth.js";
+
+let mapInstance = null;
 
 const state = {
   caregivers: [],
@@ -109,6 +111,7 @@ export function BrowsePage() {
         <div class="view-toggle" id="viewToggle">
           <button data-view="grid" class="${state.view === "grid" ? "is-active" : ""}">${gridIcon()} Gallery</button>
           <button data-view="list" class="${state.view === "list" ? "is-active" : ""}">${listIcon()} List</button>
+          <button data-view="map" class="${state.view === "map" ? "is-active" : ""}">${pinIcon()} Map</button>
         </div>
       </div>
       <div id="resultsArea"></div>
@@ -161,6 +164,11 @@ function renderResults() {
   const countEl = document.getElementById("resultsBarCount");
   if (countEl) countEl.textContent = state.loading ? "Loading..." : `${results.length} result${results.length === 1 ? "" : "s"}`;
 
+  if (mapInstance) {
+    mapInstance.remove();
+    mapInstance = null;
+  }
+
   const rail = RecommendedRail();
   const body = state.loading
     ? `<p style="padding:40px 0;color:var(--ink-faint);">Loading caregivers...</p>`
@@ -168,10 +176,43 @@ function renderResults() {
     ? `<div class="empty-state"><h3>No caregivers match those filters</h3><p>Try widening your search or clearing a filter.</p></div>`
     : state.view === "grid"
     ? `<div class="results-grid">${results.map((cg) => CaregiverCard(cg, { mode: "grid", isFav: state.favorites.has(cg.id) })).join("")}</div>`
-    : `<div class="results-list">${results.map((cg) => CaregiverCard(cg, { mode: "list", isFav: state.favorites.has(cg.id) })).join("")}</div>`;
+    : state.view === "list"
+    ? `<div class="results-list">${results.map((cg) => CaregiverCard(cg, { mode: "list", isFav: state.favorites.has(cg.id) })).join("")}</div>`
+    : `<div class="map-wrap" id="mapContainer"></div>`;
 
   area.innerHTML = rail + body;
   attachFavoriteHandlers(area, handleFavoriteToggle);
+
+  if (!state.loading && results.length && state.view === "map") renderMap(results);
+}
+
+function renderMap(results) {
+  const container = document.getElementById("mapContainer");
+  if (!container || typeof L === "undefined") return;
+  const map = L.map(container, { scrollWheelZoom: false }).setView([32.92, -96.85], 10);
+  mapInstance = map;
+  L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
+    attribution: "&copy; OpenStreetMap contributors",
+    maxZoom: 18,
+  }).addTo(map);
+
+  const bounds = [];
+  results.forEach((cg) => {
+    const coords = jitteredCoords(cg.city, cg.id);
+    if (!coords) return;
+    bounds.push(coords);
+    const marker = L.marker(coords).addTo(map);
+    const popupEl = document.createElement("div");
+    popupEl.className = "map-popup";
+    popupEl.innerHTML = `
+      ${avatarMarkup(cg, "sm")}
+      <div class="map-popup-name">${escapeHtml(cg.name)}</div>
+      <div class="map-popup-rate">${escapeHtml(cg.city)} · $${cg.rate}/hr</div>
+      <a class="btn btn-primary btn-sm" href="#/caregiver/${cg.id}">View profile</a>
+    `;
+    marker.bindPopup(popupEl);
+  });
+  if (bounds.length) map.fitBounds(bounds, { padding: [30, 30], maxZoom: 13 });
 }
 
 async function handleFavoriteToggle(caregiverId, btn) {
@@ -187,6 +228,13 @@ async function handleFavoriteToggle(caregiverId, btn) {
     renderResults();
   } catch {
     // ignore transient failures
+  }
+}
+
+export function cleanupBrowsePage() {
+  if (mapInstance) {
+    mapInstance.remove();
+    mapInstance = null;
   }
 }
 

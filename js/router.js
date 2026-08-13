@@ -27,6 +27,7 @@ export function parseRoute() {
   if (parts[0] === "login") return { name: "login" };
   if (parts[0] === "signup") return { name: "signup" };
   if (parts[0] === "favorites") return { name: "favorites", guard: requireAuth };
+  if (parts[0] === "onboarding") return { name: "onboarding", guard: requireAuth };
   if (parts[0] === "admin" && parts[1] === "login") return { name: "adminLogin" };
   if (parts[0] === "admin") return { name: "admin", guard: requireAdmin };
   return { name: "notfound" };
