@@ -24,8 +24,9 @@ static site with zero server config — no rewrites needed.
 ```
 index.html            shell, mounts #app
 css/styles.css         all styles
+api/config.js          serverless function: exposes SUPABASE_URL/ANON_KEY env vars to the client
 js/
-  supabaseClient.js    Supabase client (public URL + publishable key)
+  supabaseClient.js    Supabase client (fetches config from /api/config, falls back to a dev default)
   constants.js          shared reference data + icon helpers
   auth.js                session/profile state, sign up/in/out, role guards
   api.js                  all Supabase table/RPC calls
@@ -35,19 +36,42 @@ js/
 supabase/migrations/    schema, RLS policies, match_caregivers(), seed data
 ```
 
+## Environment variables
+
+The site itself is still buildless, but `api/config.js` is a small Vercel
+Serverless Function (auto-detected — any file under `api/` is picked up with
+zero config, no `package.json` needed) that hands the client its Supabase
+URL/key from environment variables, so **Production**, **Preview**, and
+**Development** can each point at a different Supabase project if you want
+one:
+
+- `SUPABASE_URL`
+- `SUPABASE_ANON_KEY` (the publishable/anon key — safe to expose client-side; every access rule is enforced by Postgres RLS, not by keeping this secret)
+
+Set these per environment in the Vercel dashboard under **Settings →
+Environment Variables**, or via the CLI (`vercel env add SUPABASE_URL
+production`, etc.). See `.env.example` for the shape.
+
+If `/api/config` isn't reachable or the env vars aren't set for the current
+environment (e.g. Local Development without `vercel dev`), `supabaseClient.js`
+falls back to the same dev Supabase project this was built against, so
+`python3 -m http.server` still works out of the box.
+
 ## Running locally
 
-No build step — just serve the directory statically:
+**Full fidelity (matches Preview/Production, including `/api/config`):**
+```bash
+npm i -g vercel   # once
+vercel link       # links this directory to the ros-pipeline/saathi project
+vercel env pull   # writes .env.local from the Development environment
+vercel dev
+```
 
+**Plain static (no serverless functions, uses the hardcoded fallback config):**
 ```bash
 npx serve .
 # or: python3 -m http.server 8000
 ```
-
-Then open the printed URL. The Supabase project it talks to is already live
-(URL + publishable key are hardcoded in `js/supabaseClient.js` — that key is
-safe to expose client-side; every access rule is enforced by Postgres RLS,
-not by keeping the key secret).
 
 ## Database
 
@@ -106,8 +130,14 @@ Noted here rather than built, to keep this pass scoped:
 
 ## Deploying
 
-No Vercel CLI was available in the environment this was built in, so
-deployment isn't wired up automatically. To deploy:
-1. Go to [vercel.com/new](https://vercel.com/new) and import this GitHub repo.
-2. Framework preset: **Other** (no build command, output directory `.`).
-3. Deploy — hash routing means no rewrite rules are needed.
+Already imported into Vercel (`ros-pipeline/saathi`, framework preset
+**Other**, no build command). Every push to `main` deploys to
+**Production**; every other branch or PR gets its own **Preview**
+deployment, per [Vercel's environments
+model](https://vercel.com/docs/deployments/environments) — hash routing
+means no rewrite rules are needed either way.
+
+Before Production/Preview will talk to Supabase for real (rather than
+silently using the hardcoded fallback), set `SUPABASE_URL` and
+`SUPABASE_ANON_KEY` in the project's Environment Variables settings for
+each environment that needs them.
