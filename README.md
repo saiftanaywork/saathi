@@ -3,6 +3,16 @@
 A caregiver directory for Indian families in the Dallas–Fort Worth area.
 Originally a static-mock [Claude artifact](https://claude.ai/code/artifact/30ff2c3b-8ad8-47ea-8a4d-2c77678b82c4); this repo turns it into a real app backed by Supabase.
 
+## Docs
+
+- [`CLAUDE.md`](./CLAUDE.md) — tech stack, folder structure, and
+  conventions (read by Claude Code automatically)
+- [`docs/PRD.md`](./docs/PRD.md) — value prop, pain points, ICP, non-goals
+- [`docs/BRAND.md`](./docs/BRAND.md) — name, positioning, voice, palette
+- [`docs/DESIGN_SYSTEM.md`](./docs/DESIGN_SYSTEM.md) — tokens and component map
+- [`docs/TASKS.md`](./docs/TASKS.md) — backlog, broken out from the PRD
+- [`docs/ENVIRONMENTS.md`](./docs/ENVIRONMENTS.md) — staging/prod strategy
+
 ## What's here
 
 - **Directory browsing** with gallery/list/**map** view modes, language/city/care-type/rate filters, and full-text search. The map (Leaflet + OpenStreetMap, no API key) jitters pins around each caregiver's city center since listings only store a city, not an address.
@@ -12,6 +22,10 @@ Originally a static-mock [Claude artifact](https://claude.ai/code/artifact/30ff2
 - **Caregiver photos**: uploaded to a public Supabase Storage bucket, shown on cards/profile/map in place of the initials avatar once set.
 - **Background-check status with document verification**: a caregiver can upload supporting documents (ID, certifications — private Storage bucket, owner + admin only) and request a review; an admin reviews the documents and approves/rejects from `/admin`; approved requests show a Verified badge on the public profile.
 - **Saved caregivers** (favorites) for signed-in families.
+- **Error tracking**: a minimal self-hosted alternative to a third-party
+  service (no external account needed) — uncaught client errors and
+  rejections report to an admin-only `error_logs` table, visible on the
+  admin dashboard. See `js/errorTracking.js`.
 
 ## Architecture
 
@@ -62,7 +76,7 @@ falls back to the same dev Supabase project this was built against, so
 **Full fidelity (matches Preview/Production, including `/api/config`):**
 ```bash
 npm i -g vercel   # once
-vercel link       # links this directory to the ros-pipeline/saathi project
+vercel link       # links this directory to the saathi-4c17f716/saathi project
 vercel env pull   # writes .env.local from the Development environment
 vercel dev
 ```
@@ -75,8 +89,9 @@ npx serve .
 
 ## Database
 
-Schema and policies live in `supabase/migrations/0001_init.sql`, applied via
-the Supabase MCP tools. Key design points:
+Schema and policies live in `supabase/migrations/`, applied in order via
+the Supabase MCP tools (no local Supabase CLI is used for this project).
+Key design points:
 
 - `profiles.role` (`family` / `caregiver` / `admin`) can only become
   `admin` through a direct SQL update — signup metadata is whitelisted
@@ -130,8 +145,9 @@ Noted here rather than built, to keep this pass scoped:
 
 ## Deploying
 
-Already imported into Vercel (`ros-pipeline/saathi`, framework preset
-**Other**, no build command). Every push to `main` deploys to
+Already imported into Vercel (`saathi-4c17f716/saathi`, live at
+[saathi-two-jet.vercel.app](https://saathi-two-jet.vercel.app), framework
+preset **Other**, no build command). Every push to `main` deploys to
 **Production**; every other branch or PR gets its own **Preview**
 deployment, per [Vercel's environments
 model](https://vercel.com/docs/deployments/environments) — hash routing
