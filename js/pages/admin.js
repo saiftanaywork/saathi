@@ -1,5 +1,5 @@
 import { escapeHtml } from "../constants.js";
-import { listPendingBackgroundChecks, reviewBackgroundCheck, listAllUsers, listDocumentsForCaregiver, getDocumentSignedUrl } from "../api.js";
+import { listPendingBackgroundChecks, reviewBackgroundCheck, listAllUsers, listDocumentsForCaregiver, getDocumentSignedUrl, listRecentErrors } from "../api.js";
 
 export function AdminPage() {
   return `
@@ -15,6 +15,12 @@ export function AdminPage() {
     <div class="admin-section">
       <h2>Users</h2>
       <div id="userList">Loading...</div>
+    </div>
+
+    <div class="admin-section">
+      <h2>Recent errors</h2>
+      <p style="color:var(--ink-soft);font-size:13.5px;margin-bottom:10px;">Uncaught client-side errors, most recent first. Self-reported by the site — see js/errorTracking.js.</p>
+      <div id="errorList">Loading...</div>
     </div>
   </div>`;
 }
@@ -107,6 +113,32 @@ async function renderUsers() {
     </table>`;
 }
 
+async function renderErrors() {
+  const el = document.getElementById("errorList");
+  if (!el) return;
+  const rows = await listRecentErrors().catch(() => []);
+  if (!rows.length) {
+    el.innerHTML = `<div class="admin-empty">No errors reported.</div>`;
+    return;
+  }
+  el.innerHTML = `
+    <table class="admin-table">
+      <thead><tr><th>Message</th><th>Page</th><th>When</th></tr></thead>
+      <tbody>
+        ${rows
+          .map(
+            (r) => `
+          <tr>
+            <td>${escapeHtml(r.message)}</td>
+            <td style="max-width:220px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${escapeHtml(r.url || "")}</td>
+            <td>${new Date(r.created_at).toLocaleString()}</td>
+          </tr>`
+          )
+          .join("")}
+      </tbody>
+    </table>`;
+}
+
 export async function mountAdminPage() {
-  await Promise.all([renderQueue(), renderUsers()]);
+  await Promise.all([renderQueue(), renderUsers(), renderErrors()]);
 }

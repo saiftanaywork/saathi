@@ -1,4 +1,5 @@
 import { initAuth, onAuthChange } from "./auth.js";
+import { initErrorTracking } from "./errorTracking.js";
 import { currentRoute, navigate, initRouter } from "./router.js";
 import { NavBar, attachNavHandlers } from "./components/navbar.js";
 import { Footer } from "./components/footer.js";
@@ -59,6 +60,7 @@ function render() {
 }
 
 async function boot() {
+  initErrorTracking();
   await initAuth();
   onAuthChange(() => render());
   initRouter(render);

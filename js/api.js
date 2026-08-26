@@ -315,3 +315,13 @@ export async function getDocumentSignedUrl(filePath) {
   if (error) throw error;
   return data.signedUrl;
 }
+
+export async function listRecentErrors(limit = 20) {
+  const { data, error } = await supabase
+    .from("error_logs")
+    .select("id, message, url, created_at")
+    .order("created_at", { ascending: false })
+    .limit(limit);
+  if (error) throw error;
+  return data || [];
+}
