@@ -52,7 +52,8 @@ function EditFormPage(cg) {
     <div id="listError"></div>
     <form id="listingForm">
       <div class="field">
-        <label>Photo</label>
+        <label>Photo <span style="color:var(--terracotta-deep, #b3543a);">*</span></label>
+        <p style="color:var(--ink-faint);font-size:13px;margin-bottom:10px;">Families want to see who they're inviting into their home. A clear photo of your face is required.</p>
         ${PhotoUploadField()}
       </div>
       <div class="field">
@@ -213,6 +214,12 @@ async function mountEditForm(area, cg, session) {
     e.preventDefault();
     const languages = [...document.querySelectorAll("[data-lang]:checked")].map((i) => i.value);
     const careTypes = [...document.querySelectorAll("[data-care]:checked")].map((i) => i.value);
+    const el = document.getElementById("listError");
+    if (!photoUrl) {
+      if (el) el.innerHTML = `<div class="auth-error">Please add a profile photo before saving.</div>`;
+      document.getElementById("photoPreview")?.scrollIntoView({ behavior: "smooth", block: "center" });
+      return;
+    }
     const fullName = getProfile()?.full_name || "";
     try {
       await upsertCaregiverProfile(session.user.id, {
@@ -224,12 +231,12 @@ async function mountEditForm(area, cg, session) {
         experience_years: Number(document.getElementById("experienceYears").value),
         availability: document.getElementById("availability").value.trim(),
         bio: document.getElementById("bio").value.trim(),
+        photo_url: photoUrl,
         initials: initialsFor(fullName),
         accent: accentFor(fullName),
       });
       location.hash = `#/caregiver/${session.user.id}`;
     } catch (err) {
-      const el = document.getElementById("listError");
       if (el) el.innerHTML = `<div class="auth-error">${escapeHtml(err.message || "Couldn't save that listing.")}</div>`;
     }
   });
@@ -259,7 +266,8 @@ function renderWizard(area, session) {
 function WizardBasics() {
   return `
     <div class="field">
-      <label>Photo <span class="optional">(optional, add it anytime)</span></label>
+      <label>Photo <span style="color:var(--terracotta-deep, #b3543a);">*</span></label>
+      <p style="color:var(--ink-faint);font-size:13px;margin-bottom:10px;">Families want to see who they're inviting into their home. A clear photo of your face is required to publish a listing.</p>
       ${PhotoUploadField()}
     </div>
     <div class="field">
@@ -383,6 +391,10 @@ function saveStepDraft() {
     const headline = document.getElementById("w_headline").value.trim();
     const city = document.getElementById("w_city").value;
     const rate = document.getElementById("w_rate").value;
+    if (!photoUrl) {
+      showWizardError("Please add a profile photo before continuing.");
+      return false;
+    }
     if (!headline || !city || !rate) {
       showWizardError("Fill in a headline, city, and rate to continue.");
       return false;

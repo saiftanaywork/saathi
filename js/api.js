@@ -273,7 +273,15 @@ export async function uploadAvatar(userId, file) {
   if (uploadError) throw uploadError;
   const { data } = supabase.storage.from("avatars").getPublicUrl(path);
   const url = `${data.publicUrl}?v=${Date.now()}`;
-  await upsertCaregiverProfile(userId, { photo_url: url });
+  // Only patch an existing listing immediately (edit mode). For a caregiver
+  // still in the first-time wizard, caregiver_profiles has no row yet --
+  // city is not-null with no default, so an upsert here would fail. The
+  // wizard's own finishWizard() already sends photo_url as part of its
+  // full upsert once the listing is actually created.
+  const { data: existing } = await supabase.from("caregiver_profiles").select("id").eq("id", userId).maybeSingle();
+  if (existing) {
+    await upsertCaregiverProfile(userId, { photo_url: url });
+  }
   return url;
 }
 

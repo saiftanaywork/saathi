@@ -13,6 +13,9 @@ export function requireCaregiver() {
   if (!isSignedIn()) return "/login";
   return isCaregiver() ? true : "/browse";
 }
+export function requireBrowseAccess() {
+  return isSignedIn() ? true : "/get-started";
+}
 
 export function parseRoute() {
   const hash = location.hash || "#/";
@@ -20,10 +23,12 @@ export function parseRoute() {
   const parts = path.split("/").filter(Boolean);
 
   if (parts.length === 0) return { name: "landing" };
-  if (parts[0] === "browse") return { name: "browse" };
+  if (parts[0] === "browse") return { name: "browse", guard: requireBrowseAccess };
+  if (parts[0] === "get-started") return { name: "getStarted" };
   if (parts[0] === "caregiver" && parts[1]) return { name: "profile", id: parts[1] };
   if (parts[0] === "list-your-services") return { name: "list", guard: requireCaregiver };
   if (parts[0] === "how-it-works") return { name: "about" };
+  if (parts[0] === "privacy") return { name: "privacy" };
   if (parts[0] === "login") return { name: "login" };
   if (parts[0] === "signup") return { name: "signup" };
   if (parts[0] === "favorites") return { name: "favorites", guard: requireAuth };

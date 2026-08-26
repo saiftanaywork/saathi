@@ -12,7 +12,8 @@ import { ListPage, mountListPage } from "./pages/listYourServices.js";
 import { AdminPage, mountAdminPage } from "./pages/admin.js";
 import { FavoritesPage, mountFavoritesPage } from "./pages/favorites.js";
 import { OnboardingPage, mountOnboardingPage } from "./pages/onboarding.js";
-import { AboutPage, NotFoundPage } from "./pages/about.js";
+import { GetStartedPage, mountGetStartedPage } from "./pages/getStarted.js";
+import { AboutPage, PrivacyPage, NotFoundPage } from "./pages/about.js";
 
 function routeBody(route) {
   switch (route.name) {
@@ -21,12 +22,14 @@ function routeBody(route) {
     case "profile": return ProfilePage();
     case "list": return ListPage();
     case "about": return AboutPage();
+    case "privacy": return PrivacyPage();
     case "login": return LoginPage();
     case "signup": return SignupPage();
     case "adminLogin": return AdminLoginPage();
     case "admin": return AdminPage();
     case "favorites": return FavoritesPage();
     case "onboarding": return OnboardingPage();
+    case "getStarted": return GetStartedPage();
     default: return NotFoundPage();
   }
 }
@@ -43,6 +46,7 @@ async function mountRoute(route) {
     case "admin": return mountAdminPage();
     case "favorites": return mountFavoritesPage();
     case "onboarding": return mountOnboardingPage();
+    case "getStarted": return mountGetStartedPage();
   }
 }
 

@@ -10,7 +10,7 @@ export function NavBar(active) {
   const caregiver = isCaregiver();
   const profile = getProfile();
 
-  const authLinks = admin
+  const accountArea = admin
     ? `${link("/admin", "Admin dashboard", "admin")}<button class="btn btn-ghost btn-sm" id="signOutBtn">Sign out</button>`
     : signedIn
     ? `
@@ -18,49 +18,46 @@ export function NavBar(active) {
       <span class="nav-link" style="cursor:default;opacity:.7;">${profile?.full_name ? `Hi, ${profile.full_name.split(" ")[0]}` : ""}</span>
       <button class="btn btn-ghost btn-sm" id="signOutBtn">Sign out</button>
     `
-    : `${link("/login", "Log in", "login")}<a class="btn btn-primary btn-sm nav-cta" href="#/browse">Find a caregiver</a>`;
+    : `${link("/login", "Log in", "login")}<a class="btn btn-primary btn-sm" href="#/get-started">Get started</a>`;
 
   return `
   <header class="site-nav">
     <div class="container">
-      <a class="brand" href="#/">
-        ${BrandMark()}
-        <span>
+      <div class="nav-left">
+        <button class="nav-toggle" id="navToggle" aria-label="Open menu" aria-expanded="false">${menuIcon()}</button>
+        <a class="brand" href="#/">
+          ${BrandMark()}
           <span class="brand-word">Saathi</span>
-          <span class="brand-tag">Caregiver directory · DFW</span>
-        </span>
-      </a>
-      <nav class="nav-links">
-        ${link("/browse", "Find a caregiver", "browse")}
-        ${link("/list-your-services", "List your services", "list")}
-        ${link("/how-it-works", "How it works", "about")}
-        ${authLinks}
-      </nav>
-      <button class="nav-toggle" id="navToggle" aria-label="Open menu" aria-expanded="false">${menuIcon()}</button>
+        </a>
+      </div>
+      <div class="nav-actions">${accountArea}</div>
     </div>
-    <div class="nav-mobile-panel" id="navMobilePanel">
-      ${link("/browse", "Find a caregiver", "browse")}
-      ${link("/list-your-services", "List your services", "list")}
+    <div class="nav-dropdown" id="navDropdown">
+      ${signedIn ? link("/browse", "Find a caregiver", "browse") : link("/get-started", "Find a caregiver", "getStarted")}
+      ${caregiver && signedIn ? "" : link("/list-your-services", "List your services", "list")}
       ${link("/how-it-works", "How it works", "about")}
+      ${link("/privacy", "Privacy", "privacy")}
       ${signedIn ? "" : link("/login", "Log in", "login")}
-      ${signedIn ? '<button class="btn btn-ghost" id="signOutBtnMobile">Sign out</button>' : '<a class="btn btn-primary" href="#/browse">Find a caregiver</a>'}
     </div>
   </header>`;
 }
 
 export function attachNavHandlers(onSignedOut) {
   const toggle = document.getElementById("navToggle");
-  const panel = document.getElementById("navMobilePanel");
+  const panel = document.getElementById("navDropdown");
   if (toggle && panel) {
     toggle.addEventListener("click", () => {
       const open = panel.classList.toggle("is-open");
       toggle.setAttribute("aria-expanded", String(open));
     });
     panel.addEventListener("click", (e) => {
-      if (e.target.tagName === "A") panel.classList.remove("is-open");
+      if (e.target.tagName === "A") {
+        panel.classList.remove("is-open");
+        toggle.setAttribute("aria-expanded", "false");
+      }
     });
   }
-  for (const id of ["signOutBtn", "signOutBtnMobile"]) {
+  for (const id of ["signOutBtn"]) {
     const btn = document.getElementById(id);
     if (btn) btn.addEventListener("click", async () => {
       await signOut();

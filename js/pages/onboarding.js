@@ -2,12 +2,18 @@ import { LANGUAGES, CITIES, CARE_TYPES, escapeAttr } from "../constants.js";
 import { logSearch } from "../api.js";
 import { getSession } from "../auth.js";
 import { navigate } from "../router.js";
+import { takeOnboardingSeed } from "../onboardingState.js";
 
 let step = 0;
 const draft = { languages: [], careTypes: [], city: "", maxRate: "" };
 
 export function OnboardingPage() {
   step = 0;
+  const seed = takeOnboardingSeed();
+  if (seed) {
+    if (seed.careTypes?.length) draft.careTypes = seed.careTypes;
+    if (seed.city) draft.city = seed.city;
+  }
   return `<div class="onboarding-page" id="onboardingArea"></div>`;
 }
 

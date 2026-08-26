@@ -39,6 +39,41 @@ export function AboutPage() {
   `;
 }
 
+export function PrivacyPage() {
+  return `
+  <div class="container about-hero">
+    <h1>Privacy</h1>
+    <p>Short version: we collect what's needed to run a directory, and nothing you list gets sold anywhere.</p>
+  </div>
+  <div class="container about-columns">
+    <div class="about-card">
+      <h3>What we collect</h3>
+      <ul>
+        <li>Your email and password, handled by Supabase Auth — we never see or store your password directly.</li>
+        <li>Your name and role (family or caregiver).</li>
+        <li>If you list services: your headline, bio, city, languages, rate, and the photo you upload.</li>
+        <li>If you request a background-check review: the ID or certification document you upload, visible only to you and admins.</li>
+        <li>Reviews and star ratings you leave for a caregiver, shown publicly with your name.</li>
+        <li>Filters and searches you run, if you're signed in, so recommendations can improve.</li>
+        <li>Messages you send through a caregiver's contact form.</li>
+      </ul>
+    </div>
+    <div class="about-card">
+      <h3>What we don't do</h3>
+      <ul>
+        <li>Sell or share your information with advertisers or third parties.</li>
+        <li>Show your email, phone, or exact address to anyone browsing the directory — the map view jitters a caregiver's pin near their city, not their real location.</li>
+        <li>Track you across other websites.</li>
+      </ul>
+    </div>
+  </div>
+  <div class="container" style="max-width:70ch;padding-bottom:80px;">
+    <h3 style="margin-bottom:10px;">Questions or a deletion request?</h3>
+    <p style="color:var(--ink-soft);line-height:1.7;">Saathi is a small, community-run directory, not a large company with a dedicated privacy team. If you'd like your account, listing, review, or uploaded documents removed, reach out through a caregiver's contact form or the admin login page and we'll take care of it directly.</p>
+  </div>
+  `;
+}
+
 export function NotFoundPage() {
   return `<div class="container" style="padding:110px 0 130px;text-align:center;">
     <h1>Page not found</h1>

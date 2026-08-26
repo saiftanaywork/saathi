@@ -1,6 +1,6 @@
 # Saathi
 
-A caregiver directory for Indian families in the Dallas–Fort Worth area.
+A caregiver directory for South Asian families in the Dallas–Fort Worth area.
 Originally a static-mock [Claude artifact](https://claude.ai/code/artifact/30ff2c3b-8ad8-47ea-8a4d-2c77678b82c4); this repo turns it into a real app backed by Supabase.
 
 ## Docs

@@ -1,25 +1,33 @@
-import { LANGUAGES, LANGUAGE_SCRIPT, escapeHtml, heartIcon, leafIcon, sunIcon, shieldIcon, starIcon } from "../constants.js";
+import { LANGUAGES, LANGUAGE_SCRIPT, CITIES, escapeHtml, escapeAttr, heartIcon, leafIcon, sunIcon, shieldIcon, starIcon, pinIcon, searchIcon } from "../constants.js";
 import { fetchRecentReviews } from "../api.js";
+import { setStartCity } from "../onboardingState.js";
+import { navigate } from "../router.js";
+import { isSignedIn } from "../auth.js";
 
 export function LandingPage() {
   return `
-  <section class="hero">
-    <div class="container hero-inner">
-      <div>
-        <span class="eyebrow">Serving Indian families across DFW</span>
-        <h1>Find someone who feels like <em>family</em>, not a stranger.</h1>
-        <p class="hero-sub">Saathi is a directory of caregivers for aging parents, new mothers, and anyone who'd rather explain themselves once — to someone who already understands the household.</p>
-        <div class="hero-ctas">
-          <a href="#/browse" class="btn btn-primary">Find a caregiver</a>
-          <a href="#/list-your-services" class="btn btn-secondary">List your services</a>
-        </div>
-        <p class="hero-microcopy">Free to browse and list. No bookings, no fees — you connect directly.</p>
-      </div>
-      <div class="hero-panel">
-        <div class="hero-panel-label">Caregivers on Saathi speak</div>
-        <div class="hero-lang-grid">
-          ${LANGUAGES.map((l) => `<div class="hero-lang-chip"><b>${l}</b><span>${LANGUAGE_SCRIPT[l]}</span></div>`).join("")}
-        </div>
+  <section class="hero hero-minimal">
+    <div class="container hero-inner-minimal">
+      <span class="eyebrow">South Asian caregiver directory · DFW</span>
+      <h1>Find someone who feels like <em>family</em>, not a stranger.</h1>
+      <p class="hero-sub">Elder care, postpartum support, and companionship — from caregivers who already understand the household.</p>
+      <form class="hero-search" id="heroSearchForm">
+        ${pinIcon()}
+        <select id="heroCity" required aria-label="City">
+          <option value="">Choose your city</option>
+          ${CITIES.map((c) => `<option value="${escapeAttr(c)}">${c}</option>`).join("")}
+        </select>
+        <button type="submit" class="btn btn-primary">${searchIcon()} Search</button>
+      </form>
+      <p class="hero-microcopy">Free to browse and list. No bookings, no fees — you connect directly. <a href="#/list-your-services">Are you a caregiver?</a></p>
+    </div>
+  </section>
+
+  <section class="section section-alt hero-lang-band">
+    <div class="container hero-lang-band-inner">
+      <div class="hero-panel-label">Caregivers on Saathi speak</div>
+      <div class="hero-lang-grid">
+        ${LANGUAGES.map((l) => `<div class="hero-lang-chip"><b>${l}</b><span>${LANGUAGE_SCRIPT[l]}</span></div>`).join("")}
       </div>
     </div>
   </section>
@@ -83,7 +91,7 @@ export function LandingPage() {
       <h2>Ready to take a look?</h2>
       <p>Browse caregivers by language, city, and care type — or list your own services in a few minutes.</p>
       <div class="hero-ctas">
-        <a href="#/browse" class="btn btn-primary">Find a caregiver</a>
+        <a href="${isSignedIn() ? "#/browse" : "#/get-started"}" class="btn btn-primary">Find a caregiver</a>
         <a href="#/list-your-services" class="btn btn-secondary">List your services</a>
       </div>
     </div>
@@ -92,6 +100,13 @@ export function LandingPage() {
 }
 
 export async function mountLandingPage() {
+  document.getElementById("heroSearchForm")?.addEventListener("submit", (e) => {
+    e.preventDefault();
+    const city = document.getElementById("heroCity").value;
+    if (city) setStartCity(city);
+    navigate("/get-started");
+  });
+
   const area = document.getElementById("testimonialArea");
   if (!area) return;
   const reviews = await fetchRecentReviews(3).catch(() => []);
