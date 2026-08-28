@@ -6,7 +6,7 @@ export function AboutPage() {
     <h1>A directory with a few real features — still not an agency</h1>
     <p>Saathi is a place to list, search, and now get matched. Here's exactly what that means.</p>
   </div>
-  <div class="container about-columns">
+  <div class="container" style="max-width:640px;padding:20px 0;">
     <div class="about-card">
       <h3>What Saathi does</h3>
       <ul>
@@ -14,14 +14,6 @@ export function AboutPage() {
         <li>Lets families search and filter listings by language, city, and care type — or sign in for a ranked "Recommended for you" list based on their filters and search history.</li>
         <li>Lets a caregiver request a Saathi admin review; if approved, a Verified badge appears on their profile.</li>
         <li>Gets you to a name, a story, and a way to reach out.</li>
-      </ul>
-    </div>
-    <div class="about-card">
-      <h3>What Saathi doesn't do</h3>
-      <ul>
-        <li>Run a licensed third-party background check (like Checkr or Sterling) — the Verified badge reflects Saathi's own admin review, not a criminal-records search.</li>
-        <li>Guarantee, vouch for, or take responsibility for any match the algorithm surfaces — it's a ranking, not a recommendation you should skip vetting.</li>
-        <li>Handle messaging, scheduling, or payment — that all happens off-platform, directly between you.</li>
       </ul>
     </div>
   </div>
