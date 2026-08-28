@@ -9,6 +9,7 @@ import {
   listMyDocuments,
 } from "../api.js";
 import { getSession, getProfile } from "../auth.js";
+import { takeOnboardingSeed } from "../onboardingState.js";
 
 let existing = null;
 let photoUrl = null;
@@ -36,6 +37,11 @@ export async function mountListPage() {
   // First-time listing: a care.com-style guided, multi-step wizard.
   step = 0;
   draft = { languages: [], careTypes: [] };
+  const seed = takeOnboardingSeed();
+  if (seed) {
+    if (seed.careTypes?.length) draft.careTypes = seed.careTypes;
+    if (seed.city) draft.city = seed.city;
+  }
   photoUrl = null;
   renderWizard(area, session);
 }

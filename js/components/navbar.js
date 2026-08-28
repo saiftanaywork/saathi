@@ -1,9 +1,10 @@
 import { BrandMark, menuIcon } from "../constants.js";
 import { isSignedIn, isAdmin, isCaregiver, getProfile, signOut } from "../auth.js";
+import { setStartRole } from "../onboardingState.js";
 
 export function NavBar(active) {
-  const link = (href, label, key) =>
-    `<a class="nav-link ${active === key ? "is-active" : ""}" href="#${href}">${label}</a>`;
+  const link = (href, label, key, presetRole) =>
+    `<a class="nav-link ${active === key ? "is-active" : ""}" href="#${href}" ${presetRole ? `data-preset-role="${presetRole}"` : ""}>${label}</a>`;
 
   const signedIn = isSignedIn();
   const admin = isAdmin();
@@ -33,8 +34,8 @@ export function NavBar(active) {
       <div class="nav-actions">${accountArea}</div>
     </div>
     <div class="nav-dropdown" id="navDropdown">
-      ${signedIn ? link("/browse", "Find a caregiver", "browse") : link("/get-started", "Find a caregiver", "getStarted")}
-      ${caregiver && signedIn ? "" : link("/list-your-services", "List your services", "list")}
+      ${signedIn ? link("/browse", "Find a caregiver", "browse") : link("/get-started", "Find a caregiver", "getStarted", "family")}
+      ${signedIn ? (caregiver ? "" : link("/list-your-services", "List your services", "list")) : link("/get-started", "List your services", "getStarted", "caregiver")}
       ${link("/how-it-works", "How it works", "about")}
       ${link("/privacy", "Privacy", "privacy")}
       ${signedIn ? "" : link("/login", "Log in", "login")}
@@ -43,6 +44,10 @@ export function NavBar(active) {
 }
 
 export function attachNavHandlers(onSignedOut) {
+  document.querySelectorAll("[data-preset-role]").forEach((el) => {
+    el.addEventListener("click", () => setStartRole(el.getAttribute("data-preset-role")));
+  });
+
   const toggle = document.getElementById("navToggle");
   const panel = document.getElementById("navDropdown");
   if (toggle && panel) {

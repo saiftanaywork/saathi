@@ -1,6 +1,6 @@
 import { LANGUAGES, LANGUAGE_SCRIPT, CITIES, escapeHtml, escapeAttr, heartIcon, leafIcon, sunIcon, shieldIcon, starIcon, pinIcon, searchIcon } from "../constants.js";
 import { fetchRecentReviews } from "../api.js";
-import { setStartCity } from "../onboardingState.js";
+import { setStartCity, setStartRole } from "../onboardingState.js";
 import { navigate } from "../router.js";
 import { isSignedIn } from "../auth.js";
 
@@ -19,7 +19,7 @@ export function LandingPage() {
         </select>
         <button type="submit" class="btn btn-primary">${searchIcon()} Search</button>
       </form>
-      <p class="hero-microcopy">Free to browse and list. No bookings, no fees — you connect directly. <a href="#/list-your-services">Are you a caregiver?</a></p>
+      <p class="hero-microcopy">Free to browse and list. No bookings, no fees — you connect directly. <a href="${isSignedIn() ? "#/list-your-services" : "#/get-started"}" ${isSignedIn() ? "" : 'data-preset-role="caregiver"'}>Are you a caregiver?</a></p>
     </div>
   </section>
 
@@ -91,8 +91,8 @@ export function LandingPage() {
       <h2>Ready to take a look?</h2>
       <p>Browse caregivers by language, city, and care type — or list your own services in a few minutes.</p>
       <div class="hero-ctas">
-        <a href="${isSignedIn() ? "#/browse" : "#/get-started"}" class="btn btn-primary">Find a caregiver</a>
-        <a href="#/list-your-services" class="btn btn-secondary">List your services</a>
+        <a href="${isSignedIn() ? "#/browse" : "#/get-started"}" class="btn btn-primary" ${isSignedIn() ? "" : 'data-preset-role="family"'}>Find a caregiver</a>
+        <a href="${isSignedIn() ? "#/list-your-services" : "#/get-started"}" class="btn btn-secondary" ${isSignedIn() ? "" : 'data-preset-role="caregiver"'}>List your services</a>
       </div>
     </div>
   </section>
@@ -104,7 +104,12 @@ export async function mountLandingPage() {
     e.preventDefault();
     const city = document.getElementById("heroCity").value;
     if (city) setStartCity(city);
+    setStartRole("family");
     navigate("/get-started");
+  });
+
+  document.querySelectorAll("[data-preset-role]").forEach((el) => {
+    el.addEventListener("click", () => setStartRole(el.getAttribute("data-preset-role")));
   });
 
   const area = document.getElementById("testimonialArea");

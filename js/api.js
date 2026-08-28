@@ -109,6 +109,12 @@ export async function logSearch({ familyId, languages, cities, careTypes, minRat
   if (error) throw error;
 }
 
+export async function countFamilyInterest({ city, careType }) {
+  const { data, error } = await supabase.rpc("count_family_interest", { p_city: city, p_care_type: careType });
+  if (error) throw error;
+  return data || 0;
+}
+
 export async function matchCaregivers({ languages = [], cities = [], careTypes = [], minRate = null, maxRate = null, familyId = null }) {
   const { data, error } = await supabase.rpc("match_caregivers", {
     p_languages: languages,

@@ -28,3 +28,18 @@ export function takeStartCity() {
   startCity = null;
   return city;
 }
+
+// Same idea again: a CTA that already declares intent ("List your
+// services", the hero search) can skip the get-started wizard's fork
+// screen instead of asking a question it already knows the answer to.
+let startRole = null;
+
+export function setStartRole(role) {
+  startRole = role;
+}
+
+export function takeStartRole() {
+  const role = startRole;
+  startRole = null;
+  return role;
+}

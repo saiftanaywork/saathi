@@ -1,25 +1,31 @@
-// Pre-signup "get started" flow for first-time families: one tap per
-// question, then a live preview of real matching caregivers before any
-// signup is asked for, then the lightest possible account creation. Ends
-// by handing the picked care type/city to the existing post-signup quiz
-// (pages/onboarding.js) so that page doesn't have to ask again.
+// Pre-signup "get started" flow, shared by both audiences: one tap per
+// question, then a live, real preview before any signup is asked for
+// (matching caregivers for a family; real search demand for a caregiver),
+// then the lightest possible account creation. Ends by handing what was
+// already answered to wherever the app asks next -- the existing family
+// quiz (pages/onboarding.js) or the existing caregiver listing wizard
+// (pages/listYourServices.js) -- so neither one re-asks the same question.
 import { CARE_TYPES, CITIES, escapeHtml, escapeAttr, chevronLeftIcon } from "../constants.js";
 import { avatarMarkup } from "../components/caregiverCard.js";
-import { fetchCaregivers } from "../api.js";
+import { fetchCaregivers, countFamilyInterest } from "../api.js";
 import { signUp } from "../auth.js";
 import { navigate } from "../router.js";
-import { setOnboardingSeed, takeStartCity } from "../onboardingState.js";
+import { setOnboardingSeed, takeStartCity, takeStartRole } from "../onboardingState.js";
 
-const STEP_ORDER = ["careType", "city", "teaser", "email", "name", "password"];
+const STEP_ORDER = ["fork", "careType", "city", "teaser", "email", "name", "password"];
 
 const state = {
-  step: "careType",
+  step: "fork",
+  role: null,
+  forkSkipped: false,
   careType: null,
   city: null,
   teaserResults: [],
   teaserAllCount: 0,
   teaserLoading: false,
   teaserFallback: false,
+  demandCount: 0,
+  demandLoading: false,
   email: "",
   name: "",
 };
@@ -32,18 +38,28 @@ function shell(inner, { showBack = true } = {}) {
   </div>`;
 }
 
-function CareTypeStep() {
+function ForkStep() {
   return shell(
     `
-    <h1 style="margin-bottom:6px;">What kind of care do you need?</h1>
-    <p style="color:var(--ink-soft);margin-bottom:20px;">We'll show you who's available right away.</p>
+    <h1 style="margin-bottom:16px;">I'd like to...</h1>
+    <div class="tile-grid">
+      <button type="button" class="tile-button ${state.role === "family" ? "is-selected" : ""}" data-role="family">Find care</button>
+      <button type="button" class="tile-button ${state.role === "caregiver" ? "is-selected" : ""}" data-role="caregiver">Offer care</button>
+    </div>`,
+    { showBack: false }
+  );
+}
+
+function CareTypeStep() {
+  const isCaregiver = state.role === "caregiver";
+  return shell(`
+    <h1 style="margin-bottom:6px;">${isCaregiver ? "What kind of care do you offer?" : "What kind of care do you need?"}</h1>
+    <p style="color:var(--ink-soft);margin-bottom:20px;">${isCaregiver ? "We'll show you real demand right away." : "We'll show you who's available right away."}</p>
     <div class="tile-grid">
       ${Object.entries(CARE_TYPES)
         .map(([v, label]) => `<button type="button" class="tile-button ${state.careType === v ? "is-selected" : ""}" data-caretype="${v}">${label}</button>`)
         .join("")}
-    </div>`,
-    { showBack: false }
-  );
+    </div>`);
 }
 
 function CityStep() {
@@ -65,7 +81,7 @@ function teaserCardHtml(cg) {
   </div>`;
 }
 
-function TeaserStep() {
+function FamilyTeaserStep() {
   const heading = state.teaserLoading
     ? "Finding caregivers…"
     : state.teaserFallback
@@ -80,6 +96,25 @@ function TeaserStep() {
     <div class="form-actions" style="justify-content:stretch;">
       <button type="button" class="btn btn-primary btn-block" id="teaserContinue" ${state.teaserLoading ? "disabled" : ""}>See my matches</button>
     </div>`);
+}
+
+function CaregiverDemandStep() {
+  const careLabel = (CARE_TYPES[state.careType] || "").toLowerCase();
+  const heading = state.demandLoading
+    ? "Checking demand…"
+    : state.demandCount > 0
+    ? `${state.demandCount} famil${state.demandCount === 1 ? "y has" : "ies have"} searched for ${escapeHtml(careLabel)} in ${escapeHtml(state.city || "")}`
+    : `Be one of the first caregivers families in ${escapeHtml(state.city || "")} will see`;
+  return shell(`
+    <h1 style="margin-bottom:6px;">${heading}</h1>
+    <p style="color:var(--ink-soft);margin-bottom:20px;">Publish a free listing and families searching for ${escapeHtml(careLabel)} can find you.</p>
+    <div class="form-actions" style="justify-content:stretch;">
+      <button type="button" class="btn btn-primary btn-block" id="teaserContinue" ${state.demandLoading ? "disabled" : ""}>Continue</button>
+    </div>`);
+}
+
+function TeaserStep() {
+  return state.role === "caregiver" ? CaregiverDemandStep() : FamilyTeaserStep();
 }
 
 function EmailStep() {
@@ -103,13 +138,14 @@ function NameStep() {
 }
 
 function PasswordStep() {
+  const unlocks = state.role === "caregiver" ? "This publishes your listing." : "This unlocks the full directory.";
   return shell(`
     <h1 style="margin-bottom:6px;">Set a password</h1>
-    <p style="color:var(--ink-soft);margin-bottom:16px;">Minimum 6 characters. This unlocks the full directory.</p>
+    <p style="color:var(--ink-soft);margin-bottom:16px;">Minimum 6 characters. ${unlocks}</p>
     <div id="wizardError"></div>
     <form id="passwordForm">
       <div class="field"><input type="password" id="wizardPassword" minlength="6" placeholder="Password" required autofocus></div>
-      <div class="form-actions" style="justify-content:stretch;"><button type="submit" class="btn btn-primary btn-block" id="wizardSubmit">Create account &amp; see matches</button></div>
+      <div class="form-actions" style="justify-content:stretch;"><button type="submit" class="btn btn-primary btn-block" id="wizardSubmit">Create account</button></div>
     </form>`);
 }
 
@@ -117,13 +153,14 @@ function ConfirmPendingStep() {
   return `
   <div class="confirm-panel">
     <h3>Check your email</h3>
-    <p>We sent a confirmation link to ${escapeHtml(state.email)}. Click it, then come back and log in to see the full directory.</p>
+    <p>We sent a confirmation link to ${escapeHtml(state.email)}. Click it, then come back and log in to continue.</p>
     <a class="btn btn-primary" href="#/login" style="margin-top:14px;">Go to login</a>
   </div>`;
 }
 
 function stepHtml() {
   switch (state.step) {
+    case "fork": return ForkStep();
     case "careType": return CareTypeStep();
     case "city": return CityStep();
     case "teaser": return TeaserStep();
@@ -131,7 +168,7 @@ function stepHtml() {
     case "name": return NameStep();
     case "password": return PasswordStep();
     case "confirmPending": return ConfirmPendingStep();
-    default: return CareTypeStep();
+    default: return ForkStep();
   }
 }
 
@@ -141,6 +178,10 @@ function showWizardError(msg) {
 }
 
 function goBack() {
+  if (state.step === "careType" && state.forkSkipped) {
+    navigate("/");
+    return;
+  }
   const idx = STEP_ORDER.indexOf(state.step);
   if (idx <= 0) {
     navigate("/");
@@ -171,8 +212,30 @@ async function loadTeaser() {
   if (state.step === "teaser") renderStep();
 }
 
+async function loadDemand() {
+  state.demandLoading = true;
+  renderStep();
+  try {
+    state.demandCount = await countFamilyInterest({ city: state.city, careType: state.careType });
+  } catch {
+    state.demandCount = 0;
+  }
+  state.demandLoading = false;
+  if (state.step === "teaser") renderStep();
+}
+
 function attachHandlers() {
   document.getElementById("wizardBack")?.addEventListener("click", goBack);
+
+  if (state.step === "fork") {
+    document.querySelectorAll("[data-role]").forEach((btn) => {
+      btn.addEventListener("click", () => {
+        state.role = btn.getAttribute("data-role");
+        state.step = "careType";
+        renderStep();
+      });
+    });
+  }
 
   if (state.step === "careType") {
     document.querySelectorAll("[data-caretype]").forEach((btn) => {
@@ -190,7 +253,8 @@ function attachHandlers() {
         state.city = btn.getAttribute("data-city");
         state.step = "teaser";
         renderStep();
-        loadTeaser();
+        if (state.role === "caregiver") loadDemand();
+        else loadTeaser();
       });
     });
   }
@@ -227,10 +291,10 @@ function attachHandlers() {
       const btn = document.getElementById("wizardSubmit");
       btn.disabled = true;
       try {
-        const { session } = await signUp({ email: state.email, password, fullName: state.name, role: "family" });
+        const { session } = await signUp({ email: state.email, password, fullName: state.name, role: state.role });
         setOnboardingSeed({ careTypes: [state.careType], city: state.city });
         if (session) {
-          navigate("/onboarding");
+          navigate(state.role === "caregiver" ? "/list-your-services" : "/onboarding");
         } else {
           state.step = "confirmPending";
           renderStep();
@@ -251,8 +315,16 @@ function renderStep() {
 }
 
 export function GetStartedPage() {
+  state.step = "fork";
+  state.forkSkipped = false;
   const startCity = takeStartCity();
   if (startCity && CITIES.includes(startCity)) state.city = startCity;
+  const startRole = takeStartRole();
+  if (startRole === "family" || startRole === "caregiver") {
+    state.role = startRole;
+    state.forkSkipped = true;
+    state.step = "careType";
+  }
   return `<div class="onboarding-page" id="getStartedArea">${stepHtml()}</div>`;
 }
 

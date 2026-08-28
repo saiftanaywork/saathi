@@ -5,20 +5,50 @@ import { navigate } from "../router.js";
 import { takeOnboardingSeed } from "../onboardingState.js";
 
 let step = 0;
+let skipToBrowse = false;
 const draft = { languages: [], careTypes: [], city: "", maxRate: "" };
 
 export function OnboardingPage() {
   step = 0;
+  skipToBrowse = false;
   const seed = takeOnboardingSeed();
   if (seed) {
     if (seed.careTypes?.length) draft.careTypes = seed.careTypes;
     if (seed.city) draft.city = seed.city;
+    // Already answered in the get-started wizard right before this --
+    // asking again would repeat the exact same question, so skip straight
+    // to browse instead of re-showing this quiz.
+    skipToBrowse = true;
+  }
+  if (skipToBrowse) {
+    return `<div class="onboarding-page" id="onboardingArea"><p style="text-align:center;color:var(--ink-soft);padding:60px 0;">Setting up your recommendations…</p></div>`;
   }
   return `<div class="onboarding-page" id="onboardingArea"></div>`;
 }
 
 export function mountOnboardingPage() {
+  if (skipToBrowse) {
+    finishFromSeed();
+    return;
+  }
   render();
+}
+
+async function finishFromSeed() {
+  const session = getSession();
+  try {
+    await logSearch({
+      familyId: session.user.id,
+      languages: draft.languages,
+      cities: draft.city ? [draft.city] : [],
+      careTypes: draft.careTypes,
+      minRate: "",
+      maxRate: "",
+    });
+  } catch {
+    // non-fatal -- still send them to browse
+  }
+  navigate("/browse");
 }
 
 function render() {
