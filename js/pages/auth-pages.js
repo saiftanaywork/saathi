@@ -43,7 +43,6 @@ export function SignupPage() {
   return `
   <div class="auth-page">
     <h1>Create your account</h1>
-    <p>Tell us who you are so we can show you the right screens.</p>
     <div class="auth-card">
       <div class="auth-role-toggle" id="roleToggle">
         <button type="button" data-role="family" class="is-active">I'm looking for care</button>
