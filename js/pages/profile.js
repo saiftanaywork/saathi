@@ -50,6 +50,11 @@ export async function mountProfilePage(id) {
       ${cg.careTypes.map((t) => `<span class="tag tag-care">${escapeHtml(CARE_TYPES[t] || t)}</span>`).join("")}
     </div>
 
+    ${cg.extraPhotoUrls?.length ? `
+    <div class="extra-photos-grid" style="margin-bottom:24px;">
+      ${cg.extraPhotoUrls.map((url) => `<div class="extra-photo-thumb" style="width:88px;height:88px;"><img src="${escapeHtml(url)}" alt="${escapeHtml(cg.name)}"></div>`).join("")}
+    </div>` : ""}
+
     <div style="max-width:70ch;">
       <h3 style="margin-bottom:10px;">About</h3>
       <p style="color:var(--ink-soft);line-height:1.7;">${escapeHtml(cg.bio)}</p>

@@ -2,7 +2,7 @@ import { supabase } from "./supabaseClient.js";
 
 const CAREGIVER_COLUMNS = `
   id, headline, bio, city, languages, care_types, rate, experience_years,
-  availability, initials, accent, photo_url, created_at,
+  availability, initials, accent, photo_url, extra_photo_urls, created_at,
   profiles!caregiver_profiles_id_fkey ( full_name )
 `;
 
@@ -55,6 +55,7 @@ function normalizeCaregiver(row, backgroundStatus, rating) {
     initials: row.initials,
     accent: row.accent,
     photoUrl: row.photo_url || null,
+    extraPhotoUrls: row.extra_photo_urls || [],
     backgroundStatus: backgroundStatus || "none",
     ratingAvg: rating?.avg || 0,
     ratingCount: rating?.count || 0,
@@ -93,6 +94,18 @@ export async function fetchMyCaregiverProfile(id) {
 
 export async function upsertCaregiverProfile(id, fields) {
   const { error } = await supabase.from("caregiver_profiles").upsert({ id, ...fields, updated_at: new Date().toISOString() });
+  if (error) throw error;
+}
+
+// A genuine UPDATE, not an upsert: Postgres validates a table's not-null
+// constraints against the row an INSERT ... ON CONFLICT DO UPDATE *would*
+// insert before it even checks for a conflict, so upsertCaregiverProfile()
+// with a partial field set (e.g. just photo_url) fails against an existing
+// row with "null value in column city" even though city is never touched.
+// UPDATE only validates the columns it actually sets, so this is the right
+// call for patching one or two fields on a listing known to already exist.
+export async function updateCaregiverProfile(id, fields) {
+  const { error } = await supabase.from("caregiver_profiles").update({ ...fields, updated_at: new Date().toISOString() }).eq("id", id);
   if (error) throw error;
 }
 
@@ -286,9 +299,33 @@ export async function uploadAvatar(userId, file) {
   // full upsert once the listing is actually created.
   const { data: existing } = await supabase.from("caregiver_profiles").select("id").eq("id", userId).maybeSingle();
   if (existing) {
-    await upsertCaregiverProfile(userId, { photo_url: url });
+    await updateCaregiverProfile(userId, { photo_url: url });
   }
   return url;
+}
+
+const MAX_EXTRA_PHOTOS = 3;
+
+export async function addExtraPhoto(userId, file) {
+  const ext = (file.name.split(".").pop() || "jpg").toLowerCase();
+  const path = `${userId}/extra_${Date.now()}.${ext}`;
+  const { error: uploadError } = await supabase.storage.from("avatars").upload(path, file, { contentType: file.type });
+  if (uploadError) throw uploadError;
+  const { data } = supabase.storage.from("avatars").getPublicUrl(path);
+  const url = `${data.publicUrl}?v=${Date.now()}`;
+  const { data: row, error: fetchError } = await supabase.from("caregiver_profiles").select("extra_photo_urls").eq("id", userId).maybeSingle();
+  if (fetchError) throw fetchError;
+  const updated = [...(row?.extra_photo_urls || []), url].slice(0, MAX_EXTRA_PHOTOS);
+  await updateCaregiverProfile(userId, { extra_photo_urls: updated });
+  return updated;
+}
+
+export async function removeExtraPhoto(userId, url) {
+  const { data: row, error: fetchError } = await supabase.from("caregiver_profiles").select("extra_photo_urls").eq("id", userId).maybeSingle();
+  if (fetchError) throw fetchError;
+  const updated = (row?.extra_photo_urls || []).filter((u) => u !== url);
+  await updateCaregiverProfile(userId, { extra_photo_urls: updated });
+  return updated;
 }
 
 // ---------------------------------------------------------------------

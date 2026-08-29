@@ -5,6 +5,8 @@ import {
   requestBackgroundCheck,
   fetchMyBackgroundStatus,
   uploadAvatar,
+  addExtraPhoto,
+  removeExtraPhoto,
   uploadVerificationDocument,
   listMyDocuments,
 } from "../api.js";
@@ -13,6 +15,7 @@ import { takeOnboardingSeed } from "../onboardingState.js";
 
 let existing = null;
 let photoUrl = null;
+let extraPhotoUrls = [];
 
 const STEPS = ["Basics", "Languages & care", "Experience", "About you", "Get verified"];
 let step = 0;
@@ -30,6 +33,7 @@ export async function mountListPage() {
 
   if (existing) {
     photoUrl = existing.photo_url || null;
+    extraPhotoUrls = existing.extra_photo_urls || [];
     mountEditForm(area, existing, session);
     return;
   }
@@ -55,12 +59,16 @@ function EditFormPage(cg) {
     <div style="max-width:640px;">
     <h1 style="margin-bottom:6px;">Your listing</h1>
     <p style="color:var(--ink-soft);margin-bottom:26px;">This is what families see when they browse Saathi.</p>
+    <div id="strengthArea"></div>
     <div id="listError"></div>
     <form id="listingForm">
       <div class="field">
         <label>Photo <span style="color:var(--terracotta-deep, #b3543a);">*</span></label>
         <p style="color:var(--ink-faint);font-size:13px;margin-bottom:10px;">Families want to see who they're inviting into their home. A clear photo of your face is required.</p>
         ${PhotoUploadField()}
+      </div>
+      <div class="field">
+        ${ExtraPhotosField()}
       </div>
       <div class="field">
         <label for="headline">Headline</label>
@@ -104,6 +112,7 @@ function EditFormPage(cg) {
       <div class="field">
         <label for="bio">About you</label>
         <textarea id="bio" required>${escapeHtml(cg?.bio || "")}</textarea>
+        ${BioPrompts("bio")}
       </div>
       <div class="form-actions">
         <button type="submit" class="btn btn-primary">Save changes</button>
@@ -112,6 +121,111 @@ function EditFormPage(cg) {
     <div id="bgCheckArea"></div>
     </div>
   `;
+}
+
+const BIO_PROMPTS = [
+  "What's a moment you're proud of with a client?",
+  "What made you get into caregiving?",
+  "What should families know about your style of care?",
+];
+
+function BioPrompts(textareaId) {
+  return `
+    <div class="bio-prompts">
+      <span class="bio-prompts-label">Need inspiration? Try answering:</span>
+      ${BIO_PROMPTS.map((p, i) => `<button type="button" class="bio-prompt-chip" data-bio-prompt="${i}" data-target="${textareaId}">${escapeHtml(p)}</button>`).join("")}
+    </div>`;
+}
+
+function wireBioPrompts() {
+  document.querySelectorAll("[data-bio-prompt]").forEach((btn) => {
+    btn.addEventListener("click", () => {
+      const prompt = BIO_PROMPTS[Number(btn.getAttribute("data-bio-prompt"))];
+      const textarea = document.getElementById(btn.getAttribute("data-target"));
+      if (!textarea) return;
+      if (!textarea.value.includes(prompt)) {
+        textarea.value = textarea.value.trim() ? `${textarea.value}\n\n${prompt}\n` : `${prompt}\n`;
+      }
+      textarea.focus();
+    });
+  });
+}
+
+function strengthItems(cg, bgStatus) {
+  return [
+    { label: "Add a profile photo", done: !!cg?.photo_url, weight: 20 },
+    { label: "Write a fuller bio (80+ characters)", done: (cg?.bio || "").length >= 80, weight: 20 },
+    { label: "List 2+ languages", done: (cg?.languages || []).length >= 2, weight: 15 },
+    { label: "List 2+ care types", done: (cg?.care_types || []).length >= 2, weight: 15 },
+    { label: "Add years of experience", done: (cg?.experience_years || 0) > 0, weight: 10 },
+    { label: "Get a Verified badge", done: bgStatus === "verified", weight: 20 },
+  ];
+}
+
+function ProfileStrength(cg, bgStatus) {
+  const items = strengthItems(cg, bgStatus);
+  const score = items.reduce((sum, i) => sum + (i.done ? i.weight : 0), 0);
+  const missing = items.filter((i) => !i.done).map((i) => i.label);
+  return `
+    <div class="strength-meter">
+      <div class="strength-head"><span>Listing strength</span><span class="strength-pct">${score}%</span></div>
+      <div class="strength-bar-track"><div class="strength-bar-fill" style="width:${score}%;"></div></div>
+      <p class="strength-hint">${missing.length ? `Next: ${escapeHtml(missing[0])}` : "Your listing is fully filled out."}</p>
+    </div>`;
+}
+
+function ExtraPhotosField() {
+  const canAddMore = extraPhotoUrls.length < 3;
+  return `
+    <label>Additional photos <span style="color:var(--ink-faint);font-weight:500;">(optional, up to 3)</span></label>
+    <div class="extra-photos-grid" id="extraPhotosGrid">
+      ${extraPhotoUrls
+        .map(
+          (url, i) => `
+        <div class="extra-photo-thumb">
+          <img src="${escapeAttr(url)}" alt="">
+          <button type="button" class="extra-photo-remove" data-remove-extra="${i}" aria-label="Remove photo">×</button>
+        </div>`
+        )
+        .join("")}
+      ${
+        canAddMore
+          ? `<label class="extra-photo-add">${uploadIcon()}<input type="file" id="extraPhotoInput" accept="image/*" style="display:none;"></label>`
+          : ""
+      }
+    </div>`;
+}
+
+function wireExtraPhotos(userId) {
+  document.getElementById("extraPhotoInput")?.addEventListener("change", async (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+    try {
+      extraPhotoUrls = await addExtraPhoto(userId, file);
+      refreshExtraPhotosGrid(userId);
+    } catch (err) {
+      alert(err.message || "Couldn't upload that photo.");
+    }
+  });
+  document.querySelectorAll("[data-remove-extra]").forEach((btn) => {
+    btn.addEventListener("click", async () => {
+      const url = extraPhotoUrls[Number(btn.getAttribute("data-remove-extra"))];
+      try {
+        extraPhotoUrls = await removeExtraPhoto(userId, url);
+        refreshExtraPhotosGrid(userId);
+      } catch (err) {
+        alert(err.message || "Couldn't remove that photo.");
+      }
+    });
+  });
+}
+
+function refreshExtraPhotosGrid(userId) {
+  const grid = document.getElementById("extraPhotosGrid");
+  const field = grid?.closest(".field");
+  if (!field) return;
+  field.innerHTML = ExtraPhotosField();
+  wireExtraPhotos(userId);
 }
 
 function PhotoUploadField() {
@@ -156,6 +270,7 @@ function BgCheckPanel(status) {
   }
   return `
     <div class="bg-check-panel">
+      <div class="verified-nudge">${shieldIcon()} Verified listings get noticed first by families.</div>
       <h3>Get a Verified badge</h3>
       <p>Request a Saathi background-check review. Upload a photo ID or certification so an admin has something to verify against, then request a review.</p>
       ${DocUploadArea()}
@@ -212,7 +327,10 @@ function wireBgCheckPanel(userId) {
 async function mountEditForm(area, cg, session) {
   area.innerHTML = EditFormPage(cg);
   wirePhotoUpload(session.user.id);
+  wireExtraPhotos(session.user.id);
+  wireBioPrompts();
   const bgStatus = await fetchMyBackgroundStatus(session.user.id).catch(() => "none");
+  document.getElementById("strengthArea").innerHTML = ProfileStrength(cg, bgStatus);
   document.getElementById("bgCheckArea").innerHTML = BgCheckPanel(bgStatus);
   wireBgCheckPanel(session.user.id);
 
@@ -335,6 +453,7 @@ function WizardBio() {
     <div class="field">
       <label for="w_bio">Tell families about yourself</label>
       <textarea id="w_bio" required placeholder="Share your experience, your approach to care, and anything families should know.">${escapeHtml(draft.bio || "")}</textarea>
+      ${BioPrompts("w_bio")}
     </div>
     ${WizardNav(true)}`;
 }
@@ -364,6 +483,7 @@ function showWizardError(msg) {
 
 function wireWizardStep(area, session) {
   wirePhotoUpload(session.user.id);
+  wireBioPrompts();
 
   document.getElementById("wizardBack")?.addEventListener("click", () => {
     saveStepDraft();
