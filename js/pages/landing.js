@@ -19,7 +19,8 @@ export function LandingPage() {
         </select>
         <button type="submit" class="btn btn-primary">${searchIcon()} Search</button>
       </form>
-      <p class="hero-microcopy">Free to browse and list. No bookings, no fees — you connect directly. <a href="${isSignedIn() ? "#/list-your-services" : "#/get-started"}" ${isSignedIn() ? "" : 'data-preset-role="caregiver"'}>Are you a caregiver?</a></p>
+      <p class="hero-microcopy">Free to browse and list. No bookings, no fees — you connect directly.</p>
+      <a class="hero-caregiver-link" href="${isSignedIn() ? "#/list-your-services" : "#/get-started"}" ${isSignedIn() ? "" : 'data-preset-role="caregiver"'}>Are you a caregiver? →</a>
     </div>
   </section>
 
