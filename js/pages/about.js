@@ -1,4 +1,4 @@
-import { checkIcon } from "../constants.js";
+import { checkIcon, escapeHtml } from "../constants.js";
 
 export function AboutPage() {
   return `
@@ -71,5 +71,19 @@ export function NotFoundPage() {
     <h1>Page not found</h1>
     <p style="color:var(--ink-soft);margin-bottom:24px;">That page doesn't exist.</p>
     <a href="#/" class="btn btn-primary">Back home</a>
+  </div>`;
+}
+
+export function AuthErrorPage(message) {
+  return `<div class="container" style="padding:110px 0 130px;text-align:center;">
+    <h1>That link didn't work</h1>
+    <p style="color:var(--ink-soft);margin-bottom:24px;max-width:52ch;margin-left:auto;margin-right:auto;">
+      ${escapeHtml(message || "This link is invalid or has expired.")}
+      ${/expired|invalid/i.test(message || "") ? " Confirmation and reset links can only be used once — try signing up or requesting a new one." : ""}
+    </p>
+    <div style="display:flex;gap:12px;justify-content:center;flex-wrap:wrap;">
+      <a href="#/signup" class="btn btn-primary">Create an account</a>
+      <a href="#/login" class="btn btn-secondary">Log in</a>
+    </div>
   </div>`;
 }

@@ -19,7 +19,17 @@ export function requireBrowseAccess() {
 
 export function parseRoute() {
   const hash = location.hash || "#/";
-  const path = hash.slice(1) || "/";
+  const rawFragment = hash.slice(1);
+
+  // Supabase auth redirects (an expired/already-used confirmation or
+  // password-reset link, etc.) land here with error info as URL-encoded
+  // params directly in the hash, not as a normal app path.
+  if (/(^|&)error=/.test(rawFragment)) {
+    const params = new URLSearchParams(rawFragment);
+    return { name: "authError", message: params.get("error_description")?.replace(/\+/g, " ") || params.get("error") };
+  }
+
+  const path = rawFragment || "/";
   const parts = path.split("/").filter(Boolean);
 
   if (parts.length === 0) return { name: "landing" };
