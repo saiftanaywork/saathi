@@ -1,5 +1,5 @@
 import { escapeHtml } from "../constants.js";
-import { signIn, signUp, isAdmin } from "../auth.js";
+import { signIn, signUp, isAdmin, resendConfirmationEmail } from "../auth.js";
 import { navigate } from "../router.js";
 
 export function LoginPage() {
@@ -34,7 +34,34 @@ export function mountLoginPage() {
       await signIn({ email, password });
       navigate(isAdmin() ? "/admin" : "/browse");
     } catch (err) {
-      showAuthError(err.message || "Couldn't log in.");
+      if (/email.*not.*confirmed/i.test(err.message || "")) {
+        showUnconfirmedEmailNotice(email);
+      } else {
+        showAuthError(err.message || "Couldn't log in.");
+      }
+    }
+  });
+}
+
+function showUnconfirmedEmailNotice(email) {
+  const el = document.getElementById("authError");
+  if (!el) return;
+  el.innerHTML = `
+    <div class="auth-error">
+      That email hasn't been confirmed yet. Check your inbox for the link, or
+      <button type="button" id="resendConfirmBtn" style="background:none;border:none;padding:0;color:inherit;font-weight:700;text-decoration:underline;cursor:pointer;">resend the confirmation email</button>.
+    </div>`;
+  document.getElementById("resendConfirmBtn")?.addEventListener("click", async (e) => {
+    const btn = e.currentTarget;
+    btn.disabled = true;
+    btn.textContent = "Sending...";
+    try {
+      await resendConfirmationEmail(email);
+      el.innerHTML = `<div class="auth-error">Sent — check your inbox for a new confirmation link.</div>`;
+    } catch (err) {
+      btn.disabled = false;
+      btn.textContent = "resend the confirmation email";
+      showAuthError(err.message || "Couldn't resend that email.");
     }
   });
 }

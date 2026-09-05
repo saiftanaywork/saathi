@@ -76,6 +76,15 @@ export async function signIn({ email, password }) {
   return data;
 }
 
+export async function resendConfirmationEmail(email) {
+  const { error } = await supabase.auth.resend({
+    type: "signup",
+    email,
+    options: { emailRedirectTo: `${location.origin}/` },
+  });
+  if (error) throw error;
+}
+
 export async function signOut() {
   await supabase.auth.signOut();
   await refresh(null);
