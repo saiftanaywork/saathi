@@ -63,6 +63,10 @@ export function SignupPage() {
           <label for="signupPassword">Password</label>
           <input type="password" id="signupPassword" minlength="6" required>
         </div>
+        <div class="field">
+          <label for="signupPasswordConfirm">Re-enter password</label>
+          <input type="password" id="signupPasswordConfirm" minlength="6" required>
+        </div>
         <button type="submit" class="btn btn-primary btn-block">Create account</button>
       </form>
     </div>
@@ -85,7 +89,12 @@ export function mountSignupPage() {
     const fullName = document.getElementById("signupName").value.trim();
     const email = document.getElementById("signupEmail").value.trim();
     const password = document.getElementById("signupPassword").value;
+    const passwordConfirm = document.getElementById("signupPasswordConfirm").value;
     const role = roleInput.value;
+    if (password !== passwordConfirm) {
+      showAuthError("Those passwords don't match.");
+      return;
+    }
     try {
       const { session } = await signUp({ email, password, fullName, role });
       if (!session) {
