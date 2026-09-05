@@ -959,6 +959,8 @@ button { font-family: inherit; }
 .field .optional { font-weight: 500; color: var(--ink-faint); }
 .field input[type="text"],
 .field input[type="number"],
+.field input[type="email"],
+.field input[type="password"],
 .field select,
 .field textarea {
   width: 100%;
@@ -969,9 +971,12 @@ button { font-family: inherit; }
   font-size: 15px;
   font-family: inherit;
   color: var(--ink);
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
 }
 .field input:focus, .field select:focus, .field textarea:focus {
-  outline: none; border-color: var(--terracotta);
+  outline: none;
+  border-color: var(--terracotta);
+  box-shadow: 0 0 0 3px var(--terracotta-tint);
 }
 .field textarea { resize: vertical; min-height: 110px; }
 .field-error {
