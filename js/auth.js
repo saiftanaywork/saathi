@@ -53,7 +53,16 @@ export async function signUp({ email, password, fullName, role }) {
   const { data, error } = await supabase.auth.signUp({
     email,
     password,
-    options: { data: { full_name: fullName, role: safeRole } },
+    options: {
+      data: { full_name: fullName, role: safeRole },
+      // Explicit redirect target so the confirmation link's destination is
+      // controlled here rather than depending on the dashboard's Site URL
+      // field (which must ALSO have this exact origin in its Redirect URLs
+      // allow-list, or Supabase rejects the redirect regardless of this
+      // value). Resolves to whatever origin is actually serving the app --
+      // localhost during local dev, the real domain in production/preview.
+      emailRedirectTo: `${location.origin}/`,
+    },
   });
   if (error) throw error;
   if (data.session) await refresh(data.session);
