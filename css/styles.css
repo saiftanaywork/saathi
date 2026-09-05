@@ -199,6 +199,29 @@ img { max-width: 100%; display: block; }
 
 button { font-family: inherit; }
 
+/* Every <select> on the site uses this chevron instead of the browser's
+   native dropdown arrow, which clashes with the custom pill/card styling
+   around it (most visible on the hero search's city selector). Color is
+   hardcoded to match --ink-faint since CSS vars can't be interpolated into
+   a background-image data URI -- redefined per theme below. */
+select {
+  appearance: none;
+  -webkit-appearance: none;
+  -moz-appearance: none;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 16 16' fill='none' stroke='%239c8f7c' stroke-width='1.7' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M4 6l4 4 4-4'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 14px center;
+  background-size: 14px;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) select {
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 16 16' fill='none' stroke='%238c7d68' stroke-width='1.7' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M4 6l4 4 4-4'/%3E%3C/svg%3E");
+  }
+}
+:root[data-theme="dark"] select {
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 16 16' fill='none' stroke='%238c7d68' stroke-width='1.7' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M4 6l4 4 4-4'/%3E%3C/svg%3E");
+}
+
 :focus-visible {
   outline: 2px solid var(--terracotta);
   outline-offset: 2px;
@@ -412,7 +435,9 @@ button { font-family: inherit; }
   flex: 1;
   min-width: 0;
   border: none;
-  background: none;
+  background-color: transparent;
+  background-position: right 4px center;
+  padding-right: 26px;
   font: inherit;
   font-weight: 600;
   color: var(--ink);
@@ -465,7 +490,7 @@ button { font-family: inherit; }
 
 @media (max-width: 480px) {
   .hero-search { flex-wrap: wrap; border-radius: var(--radius-lg); padding: 14px; }
-  .hero-search select { width: 100%; padding: 6px 0; }
+  .hero-search select { width: 100%; padding: 6px 26px 6px 0; }
   .hero-search .btn { width: 100%; justify-content: center; }
 }
 
@@ -967,12 +992,13 @@ button { font-family: inherit; }
   padding: 12px 14px;
   border-radius: 10px;
   border: 1.5px solid var(--line);
-  background: var(--paper);
+  background-color: var(--paper);
   font-size: 15px;
   font-family: inherit;
   color: var(--ink);
   transition: border-color 0.15s ease, box-shadow 0.15s ease;
 }
+.field select { padding-right: 36px; }
 .field input:focus, .field select:focus, .field textarea:focus {
   outline: none;
   border-color: var(--terracotta);
