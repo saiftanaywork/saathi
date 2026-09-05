@@ -14,6 +14,7 @@ import { FavoritesPage, mountFavoritesPage } from "./pages/favorites.js";
 import { OnboardingPage, mountOnboardingPage } from "./pages/onboarding.js";
 import { GetStartedPage, mountGetStartedPage } from "./pages/getStarted.js";
 import { AboutPage, PrivacyPage, NotFoundPage, AuthErrorPage, ComingSoonPage } from "./pages/about.js";
+import { attachPasswordToggles } from "./constants.js";
 
 function routeBody(route) {
   switch (route.name) {
@@ -63,6 +64,7 @@ function render() {
   root.innerHTML = NavBar(route.name) + `<main>${routeBody(route)}</main>` + Footer() + `<div id="modalLayer">${ModalLayer()}</div>`;
   attachNavHandlers(() => navigate("/"));
   mountRoute(route);
+  attachPasswordToggles(root);
 }
 
 async function boot() {

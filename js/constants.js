@@ -81,6 +81,32 @@ export const pinIcon = () => icon(`<path d="M12 21s-7-6.2-7-11a7 7 0 1 1 14 0c0 
 export const clockIcon = () => icon(`<circle cx="12" cy="12" r="9"/><path d="M12 7v5l3.5 2"/>`);
 export const shieldIcon = () => icon(`<path d="M12 3l7 3v6c0 4.5-3 7.5-7 9-4-1.5-7-4.5-7-9V6l7-3z"/><path d="M9 12l2 2 4-4"/>`, 22);
 export const uploadIcon = () => icon(`<path d="M12 16V4M8 8l4-4 4 4"/><path d="M4 16v2a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-2"/>`);
+export const eyeIcon = () => icon(`<path d="M1 12s4-7 11-7 11 7 11 7-4 7-11 7-11-7-11-7z"/><circle cx="12" cy="12" r="3"/>`, 18);
+export const eyeOffIcon = () => icon(`<path d="M17.94 17.94A10.94 10.94 0 0 1 12 19c-7 0-11-7-11-7a18.6 18.6 0 0 1 5.06-5.94M9.9 4.24A10.94 10.94 0 0 1 12 5c7 0 11 7 11 7a18.6 18.6 0 0 1-2.16 3.19M14.12 14.12a3 3 0 1 1-4.24-4.24"/><path d="M1 1l22 22"/>`, 18);
+
+// Adds a show/hide toggle to every <input type="password"> under `root`
+// that doesn't already have one. Idempotent -- safe to call after any
+// re-render (e.g. a wizard step change) without double-wiring.
+export function attachPasswordToggles(root = document) {
+  root.querySelectorAll('input[type="password"]').forEach((input) => {
+    if (input.dataset.toggleWired) return;
+    input.dataset.toggleWired = "1";
+    const wrap = input.parentElement;
+    if (wrap && getComputedStyle(wrap).position === "static") wrap.style.position = "relative";
+    const btn = document.createElement("button");
+    btn.type = "button";
+    btn.className = "password-toggle";
+    btn.setAttribute("aria-label", "Show password");
+    btn.innerHTML = eyeIcon();
+    btn.addEventListener("click", () => {
+      const showing = input.type === "text";
+      input.type = showing ? "password" : "text";
+      btn.innerHTML = showing ? eyeIcon() : eyeOffIcon();
+      btn.setAttribute("aria-label", showing ? "Show password" : "Hide password");
+    });
+    input.insertAdjacentElement("afterend", btn);
+  });
+}
 export const heartIcon = () => icon(`<path d="M12 20s-7-4.35-9.5-8.5C.8 8 2.2 4.5 5.6 4c2-.3 3.7.7 4.9 2.3C11.7 4.7 13.4 3.7 15.4 4c3.4.5 4.8 4 3.1 7.5C16 15.65 12 20 12 20z"/>`);
 export const leafIcon = () => icon(`<path d="M5 20c8 0 14-6 14-14V4h-2C9 4 5 10 5 18v2z"/><path d="M5 20c2-4 4-7 8-10"/>`);
 export const sunIcon = () => icon(`<circle cx="12" cy="12" r="4.3"/><path d="M12 3v2M12 19v2M4.2 4.2l1.4 1.4M18.4 18.4l1.4 1.4M3 12h2M19 12h2M4.2 19.8l1.4-1.4M18.4 5.6l1.4-1.4"/>`);

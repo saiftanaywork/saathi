@@ -11,7 +11,10 @@
   --card: #fffcf6;
   --ink: #2c241c;
   --ink-soft: #6b5f50;
-  --ink-faint: #9c8f7c;
+  /* #9c8f7c measured 2.87:1 on --paper -- fails WCAG AA (needs 3:1 even for
+     large text). Darkened to #7a6c56 (4.63:1) in the same warm brown-gray
+     hue, found via the ui-ux-pro-max skill's accessibility audit. */
+  --ink-faint: #7a6c56;
   --line: #e6d7bd;
   --line-soft: #efe3cc;
 
@@ -51,7 +54,9 @@
     --card: #262019;
     --ink: #f1e6d6;
     --ink-soft: #c7b9a4;
-    --ink-faint: #8c7d68;
+    /* #8c7d68 measured 4.49:1 on the dark --paper -- just under WCAG AA's
+       4.5:1 for normal text. Lightened slightly to #9c8d76 (5.55:1). */
+    --ink-faint: #9c8d76;
     --line: #3a3025;
     --line-soft: #322920;
 
@@ -88,7 +93,7 @@
   --card: #262019;
   --ink: #f1e6d6;
   --ink-soft: #c7b9a4;
-  --ink-faint: #8c7d68;
+  --ink-faint: #9c8d76;
   --line: #3a3025;
   --line-soft: #322920;
 
@@ -124,7 +129,10 @@
   --card: #fffcf6;
   --ink: #2c241c;
   --ink-soft: #6b5f50;
-  --ink-faint: #9c8f7c;
+  /* #9c8f7c measured 2.87:1 on --paper -- fails WCAG AA (needs 3:1 even for
+     large text). Darkened to #7a6c56 (4.63:1) in the same warm brown-gray
+     hue, found via the ui-ux-pro-max skill's accessibility audit. */
+  --ink-faint: #7a6c56;
   --line: #e6d7bd;
   --line-soft: #efe3cc;
 
@@ -252,6 +260,15 @@ select {
   box-shadow: var(--shadow-soft);
 }
 .btn-primary:hover { background: var(--terracotta-deep); box-shadow: var(--shadow-lift); }
+/* Dark mode's --terracotta is lightened (by design, so it still pops against
+   the dark background), which drops white button text to 2.9:1 -- fails
+   WCAG AA. Dark ink on the lightened accent measures 4.97:1. Hardcoded
+   rather than var(--ink), since that token is inverted (light) in dark
+   mode for body text and isn't the right value here. */
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) .btn-primary { color: #2c241c; }
+}
+:root[data-theme="dark"] .btn-primary { color: #2c241c; }
 
 .btn-secondary {
   background: transparent;
@@ -334,8 +351,8 @@ select {
   background: none;
   border: 1.5px solid var(--line);
   border-radius: 10px;
-  width: 42px;
-  height: 42px;
+  width: 44px;
+  height: 44px;
   align-items: center;
   justify-content: center;
   cursor: pointer;
@@ -907,7 +924,7 @@ select {
 .modal-head p { margin: 0; font-size: 13.5px; color: var(--ink-faint); }
 .modal-close {
   background: none; border: none; cursor: pointer;
-  width: 32px; height: 32px; border-radius: 50%;
+  width: 44px; height: 44px; border-radius: 50%;
   display: flex; align-items: center; justify-content: center;
   color: var(--ink-faint);
   flex-shrink: 0;
@@ -1005,6 +1022,22 @@ select {
   box-shadow: 0 0 0 3px var(--terracotta-tint);
 }
 .field textarea { resize: vertical; min-height: 110px; }
+.field input[type="password"] { padding-right: 44px; }
+.password-toggle {
+  position: absolute;
+  top: 0;
+  right: 0;
+  width: 44px;
+  height: 44px;
+  border: none;
+  background: none;
+  color: var(--ink-faint);
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+.password-toggle:hover { color: var(--ink-soft); }
 .field-error {
   color: var(--terracotta-deep);
   font-size: 13px;
@@ -1270,8 +1303,9 @@ select {
   border: 1.5px solid var(--line);
   background: var(--card);
   border-radius: 999px;
-  width: 36px;
-  height: 36px;
+  /* 44x44 is the WCAG/platform minimum touch target -- was 36px. */
+  width: 44px;
+  height: 44px;
   display: inline-flex;
   align-items: center;
   justify-content: center;

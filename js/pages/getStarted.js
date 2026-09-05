@@ -5,7 +5,7 @@
 // already answered to wherever the app asks next -- the existing family
 // quiz (pages/onboarding.js) or the existing caregiver listing wizard
 // (pages/listYourServices.js) -- so neither one re-asks the same question.
-import { CARE_TYPES, CITIES, escapeHtml, escapeAttr, chevronLeftIcon } from "../constants.js";
+import { CARE_TYPES, CITIES, escapeHtml, escapeAttr, chevronLeftIcon, attachPasswordToggles } from "../constants.js";
 import { avatarMarkup } from "../components/caregiverCard.js";
 import { fetchCaregivers, countFamilyInterest } from "../api.js";
 import { signUp } from "../auth.js";
@@ -312,6 +312,7 @@ function renderStep() {
   if (!area) return;
   area.innerHTML = stepHtml();
   attachHandlers();
+  attachPasswordToggles(area);
 }
 
 export function GetStartedPage() {
