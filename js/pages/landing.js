@@ -1,6 +1,6 @@
 import { LANGUAGES, LANGUAGE_SCRIPT, CITIES, escapeHtml, escapeAttr, heartIcon, leafIcon, sunIcon, shieldIcon, starIcon, pinIcon, searchIcon } from "../constants.js";
 import { fetchRecentReviews } from "../api.js";
-import { setStartCity, setStartRole } from "../onboardingState.js";
+import { setStartRole } from "../onboardingState.js";
 import { navigate } from "../router.js";
 import { isSignedIn } from "../auth.js";
 
@@ -103,10 +103,9 @@ export function LandingPage() {
 export async function mountLandingPage() {
   document.getElementById("heroSearchForm")?.addEventListener("submit", (e) => {
     e.preventDefault();
-    const city = document.getElementById("heroCity").value;
-    if (city) setStartCity(city);
-    setStartRole("family");
-    navigate("/get-started");
+    // Browsing is open to everyone now, so this goes straight to the
+    // directory instead of through account creation.
+    navigate("/browse");
   });
 
   document.querySelectorAll("[data-preset-role]").forEach((el) => {

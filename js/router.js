@@ -1,6 +1,7 @@
 // Simple hash router. Each route is { name, guard? } where guard(), if
 // present, returns true (allow) or a redirect path string (deny).
 import { isSignedIn, isAdmin, isCaregiver } from "./auth.js";
+import { EMAIL_AUTH_ENABLED } from "./constants.js";
 
 export function requireAuth() {
   return isSignedIn() ? true : "/login";
@@ -14,6 +15,7 @@ export function requireCaregiver() {
   return isCaregiver() ? true : "/browse";
 }
 export function requireBrowseAccess() {
+  if (!EMAIL_AUTH_ENABLED) return true;
   return isSignedIn() ? true : "/get-started";
 }
 
@@ -34,13 +36,13 @@ export function parseRoute() {
 
   if (parts.length === 0) return { name: "landing" };
   if (parts[0] === "browse") return { name: "browse", guard: requireBrowseAccess };
-  if (parts[0] === "get-started") return { name: "getStarted" };
+  if (parts[0] === "get-started") return EMAIL_AUTH_ENABLED ? { name: "getStarted" } : { name: "comingSoon" };
   if (parts[0] === "caregiver" && parts[1]) return { name: "profile", id: parts[1] };
   if (parts[0] === "list-your-services") return { name: "list", guard: requireCaregiver };
   if (parts[0] === "how-it-works") return { name: "about" };
   if (parts[0] === "privacy") return { name: "privacy" };
-  if (parts[0] === "login") return { name: "login" };
-  if (parts[0] === "signup") return { name: "signup" };
+  if (parts[0] === "login") return EMAIL_AUTH_ENABLED ? { name: "login" } : { name: "comingSoon" };
+  if (parts[0] === "signup") return EMAIL_AUTH_ENABLED ? { name: "signup" } : { name: "comingSoon" };
   if (parts[0] === "favorites") return { name: "favorites", guard: requireAuth };
   if (parts[0] === "onboarding") return { name: "onboarding", guard: requireAuth };
   if (parts[0] === "admin" && parts[1] === "login") return { name: "adminLogin" };

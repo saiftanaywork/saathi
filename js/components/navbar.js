@@ -19,7 +19,7 @@ export function NavBar(active) {
       <span class="nav-link" style="cursor:default;opacity:.7;">${profile?.full_name ? `Hi, ${profile.full_name.split(" ")[0]}` : ""}</span>
       <button class="btn btn-ghost btn-sm" id="signOutBtn">Sign out</button>
     `
-    : `${link("/login", "Log in", "login")}<a class="btn btn-primary btn-sm" href="#/get-started">Get started</a>`;
+    : `<a class="btn btn-primary btn-sm" href="#/browse">Find a caregiver</a>`;
 
   return `
   <header class="site-nav">
@@ -34,11 +34,10 @@ export function NavBar(active) {
       <div class="nav-actions">${accountArea}</div>
     </div>
     <div class="nav-dropdown" id="navDropdown">
-      ${signedIn ? link("/browse", "Find a caregiver", "browse") : link("/get-started", "Find a caregiver", "getStarted", "family")}
+      ${link("/browse", "Find a caregiver", "browse")}
       ${signedIn ? (caregiver ? "" : link("/list-your-services", "List your services", "list")) : link("/get-started", "List your services", "getStarted", "caregiver")}
       ${link("/how-it-works", "How it works", "about")}
       ${link("/privacy", "Privacy", "privacy")}
-      ${signedIn ? "" : link("/login", "Log in", "login")}
     </div>
   </header>`;
 }

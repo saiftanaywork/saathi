@@ -13,7 +13,7 @@ import { AdminPage, mountAdminPage } from "./pages/admin.js";
 import { FavoritesPage, mountFavoritesPage } from "./pages/favorites.js";
 import { OnboardingPage, mountOnboardingPage } from "./pages/onboarding.js";
 import { GetStartedPage, mountGetStartedPage } from "./pages/getStarted.js";
-import { AboutPage, PrivacyPage, NotFoundPage, AuthErrorPage } from "./pages/about.js";
+import { AboutPage, PrivacyPage, NotFoundPage, AuthErrorPage, ComingSoonPage } from "./pages/about.js";
 
 function routeBody(route) {
   switch (route.name) {
@@ -23,6 +23,7 @@ function routeBody(route) {
     case "list": return ListPage();
     case "about": return AboutPage();
     case "authError": return AuthErrorPage(route.message);
+    case "comingSoon": return ComingSoonPage();
     case "privacy": return PrivacyPage();
     case "login": return LoginPage();
     case "signup": return SignupPage();

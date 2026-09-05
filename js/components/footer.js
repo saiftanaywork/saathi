@@ -1,5 +1,4 @@
 import { BrandMark } from "../constants.js";
-import { isSignedIn } from "../auth.js";
 
 export function Footer() {
   return `
@@ -8,7 +7,7 @@ export function Footer() {
       <div>
         <div class="footer-brand">${BrandMark()}<span>Saathi</span></div>
         <div class="footer-links">
-          <a href="${isSignedIn() ? "#/browse" : "#/get-started"}">Find a caregiver</a>
+          <a href="#/browse">Find a caregiver</a>
           <a href="#/list-your-services">List your services</a>
           <a href="#/how-it-works">How it works</a>
           <a href="#/privacy">Privacy</a>

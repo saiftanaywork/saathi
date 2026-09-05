@@ -1,6 +1,13 @@
 // Static reference data + small presentation helpers shared across pages.
 // Kept close to the original artifact's data.js.
 
+// Email login/signup (login, signup, and the pre-signup get-started wizard)
+// is switched off for now until the site is on its own domain -- flip this
+// back to true to restore it. Browsing is intentionally left open either
+// way (see requireBrowseAccess in router.js); admin login is unaffected by
+// this flag regardless of its value.
+export const EMAIL_AUTH_ENABLED = false;
+
 export const LANGUAGE_SCRIPT = {
   Hindi: "हिंदी",
   Telugu: "తెలుగు",

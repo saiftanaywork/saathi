@@ -74,6 +74,14 @@ export function NotFoundPage() {
   </div>`;
 }
 
+export function ComingSoonPage() {
+  return `<div class="container" style="padding:110px 0 130px;text-align:center;">
+    <h1>Accounts are coming soon</h1>
+    <p style="color:var(--ink-soft);margin-bottom:24px;max-width:52ch;margin-left:auto;margin-right:auto;">We're finishing up a few things before turning on sign-ups. You can browse the full directory right now — check back soon to save favorites, leave reviews, or list your own services.</p>
+    <a href="#/browse" class="btn btn-primary">Browse caregivers</a>
+  </div>`;
+}
+
 export function AuthErrorPage(message) {
   return `<div class="container" style="padding:110px 0 130px;text-align:center;">
     <h1>That link didn't work</h1>
